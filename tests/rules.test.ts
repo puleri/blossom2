@@ -1,43 +1,51 @@
-import { describe, it } from 'vitest';
+import { describe, expect, it } from "vitest";
+import { applyAction } from "../lib/game/rules";
+import type { GameState } from "../lib/types";
 
-describe('rules: right-to-left activation order', () => {
-  it.todo('activates root row right-to-left (right-most plant first)');
-  it.todo('activates toTheSun row right-to-left (right-most plant first)');
-  it.todo('activates pollinate row right-to-left (right-most plant first)');
-});
+function makeState(partial: Partial<GameState> = {}): GameState {
+  return {
+    players: [
+      { id: "a", plants: [{ id: "a1", points: 5, tuckedCards: 1, sunlightTokens: 2, bonusPoints: 1 }] },
+      { id: "b", plants: [{ id: "b1", points: 4, tuckedCards: 2, sunlightTokens: 4, bonusPoints: 0 }] },
+    ],
+    deckCount: 5,
+    discardCount: 0,
+    currentTurn: 0,
+    maxTurns: 10,
+    isFinished: false,
+    winnerId: null,
+    scoringBreakdown: [],
+    ...partial,
+  };
+}
 
-describe('rules: onMature trigger de-duplication', () => {
-  it.todo('fires onMature exactly once when sunlight first reaches capacity');
-  it.todo('does not fire onMature again across repeated toTheSun actions after maturity');
-});
+describe("applyAction endgame checks", () => {
+  it("finishes the game when deck is exhausted", () => {
+    const next = applyAction(makeState({ deckCount: 1 }), "pollinate");
 
-describe('rules: invalid turns/actions', () => {
-  it.todo('rejects action from a non-current player');
-  it.todo('rejects grow when resources are insufficient');
-  it.todo('rejects grow when card is missing from player hand');
-});
-
-describe('rules: draw/deck exhaustion behavior', () => {
-  it.todo('draws only available cards when deck has fewer cards than requested');
-  it.todo('handles empty deck/tray without throwing and without negative counts');
-import { describe, expect, test } from "vitest";
-import { activate, createGame, grow } from "../lib/game/rules";
-
-describe("rules", () => {
-  test("grow spends resources and adds to tableau", () => {
-    const game = createGame("t1");
-    const before = game.players[0].resources.dew;
-    const cardId = game.players[0].hand[0].id;
-    const updated = grow(game, "p1", cardId);
-
-    expect(updated.players[0].tableau.cavern.length).toBe(1);
-    expect(updated.players[0].resources.dew).toBeLessThanOrEqual(before);
+    expect(next.isFinished).toBe(true);
+    expect(next.winnerId).toBe("b");
+    expect(next.scoringBreakdown.length).toBe(2);
   });
 
-  test("activation advances turn", () => {
-    const game = createGame("t2");
-    const updated = activate(game, "p1", "pollinate");
-    expect(updated.turn).toBe(2);
-    expect(updated.currentPlayerId).toBe("p2");
+  it("finishes the game when turn limit is reached", () => {
+    const next = applyAction(makeState({ currentTurn: 9, maxTurns: 10 }), "grow");
+
+    expect(next.isFinished).toBe(true);
+    expect(next.winnerId).toBe("b");
+  });
+
+  it("uses deterministic player id tie-break when totals and sunlight are equal", () => {
+    const tiedState = makeState({
+      players: [
+        { id: "alpha", plants: [{ id: "x", points: 6, tuckedCards: 0, sunlightTokens: 2, bonusPoints: 0 }] },
+        { id: "beta", plants: [{ id: "y", points: 6, tuckedCards: 0, sunlightTokens: 2, bonusPoints: 0 }] },
+      ],
+      currentTurn: 9,
+      maxTurns: 10,
+    });
+
+    const next = applyAction(tiedState, "grow");
+    expect(next.winnerId).toBe("alpha");
   });
 });
