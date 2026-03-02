@@ -1,114 +1,50 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Firestore } from "firebase/firestore";
-import {
-  activateWithTransaction,
-  ActionError,
-  growWithTransaction,
-} from "@/lib/realtime";
+import { useRouter } from "next/navigation";
 
-type Props = {
-  db?: Firestore;
-};
+function normalizeRoomId(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, "-");
+}
 
-export default function Page({ db }: Props) {
-  const [gameId, setGameId] = useState("");
-  const [playerId, setPlayerId] = useState("");
-  const [turnNumber, setTurnNumber] = useState(0);
-  const [cardId, setCardId] = useState("");
-  const [biome, setBiome] = useState("understory");
-  const [error, setError] = useState<ActionError | null>(null);
-  const [status, setStatus] = useState("");
+export default function HomePage() {
+  const router = useRouter();
+  const [roomIdInput, setRoomIdInput] = useState("");
 
-  const disabled = useMemo(() => !db || !gameId || !playerId || !cardId, [
-    db,
-    gameId,
-    playerId,
-    cardId,
-  ]);
+  const normalizedRoomId = useMemo(() => normalizeRoomId(roomIdInput), [roomIdInput]);
 
-  const handleGrow = async () => {
-    if (!db) {
-      setError({ code: "INVALID_STATE", message: "Firestore is not available." });
-      return;
-    }
-
-    const result = await growWithTransaction(db, {
-      gameId,
-      playerId,
-      expectedTurnNumber: turnNumber,
-      cardId,
-      biome,
-    });
-
-    if (!result.ok) {
-      setStatus("");
-      setError(result.error);
-      return;
-    }
-
-    setError(null);
-    setStatus("Grow action submitted.");
-    setTurnNumber(result.game.turnNumber);
+  const createRoom = () => {
+    const roomId = normalizedRoomId || crypto.randomUUID();
+    router.push(`/room/${roomId}?mode=create`);
   };
 
-  const handleActivate = async () => {
-    if (!db) {
-      setError({ code: "INVALID_STATE", message: "Firestore is not available." });
+  const joinRoom = () => {
+    if (!normalizedRoomId) {
       return;
     }
 
-    const result = await activateWithTransaction(db, {
-      gameId,
-      playerId,
-      expectedTurnNumber: turnNumber,
-      cardId,
-      biome,
-    });
-
-    if (!result.ok) {
-      setStatus("");
-      setError(result.error);
-      return;
-    }
-
-    setError(null);
-    setStatus("Activate action submitted.");
-    setTurnNumber(result.game.turnNumber);
+    router.push(`/room/${normalizedRoomId}?mode=join`);
   };
 
   return (
-    <main style={{ display: "grid", gap: 12, maxWidth: 420, margin: "2rem auto" }}>
-      <h1>Blossom 2</h1>
-
-      <input value={gameId} onChange={(e) => setGameId(e.target.value)} placeholder="Game ID" />
-      <input value={playerId} onChange={(e) => setPlayerId(e.target.value)} placeholder="Player ID" />
+    <main style={{ display: "grid", gap: 12, maxWidth: 420, margin: "48px auto" }}>
+      <h1>Plant Biomes</h1>
+      <label htmlFor="room-id">Room ID</label>
       <input
-        value={turnNumber}
-        type="number"
-        onChange={(e) => setTurnNumber(Number(e.target.value))}
-        placeholder="Expected turn"
+        id="room-id"
+        placeholder="enter-room-id"
+        value={roomIdInput}
+        onChange={(event) => setRoomIdInput(event.target.value)}
       />
-      <input value={cardId} onChange={(e) => setCardId(e.target.value)} placeholder="Card ID" />
-      <input value={biome} onChange={(e) => setBiome(e.target.value)} placeholder="Biome" />
 
       <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" onClick={handleGrow} disabled={disabled}>
-          Grow
+        <button type="button" onClick={createRoom}>
+          Create Room
         </button>
-        <button type="button" onClick={handleActivate} disabled={disabled}>
-          Activate
+        <button type="button" onClick={joinRoom} disabled={!normalizedRoomId}>
+          Join Room
         </button>
       </div>
-
-      {error ? (
-        <p style={{ color: "crimson" }}>
-          {error.message} ({error.code})
-        </p>
-      ) : null}
-
-      {status ? <p style={{ color: "green" }}>{status}</p> : null}
     </main>
   );
 }
