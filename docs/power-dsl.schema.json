@@ -1,124 +1,22 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Power DSL",
-  "definitions": {
-    "resourceType": {
-      "type": "string",
-      "enum": ["water", "nutrients", "seeds", "compost"]
-    },
-    "effect": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": ["op", "resource", "amount"],
-          "properties": {
-            "op": { "const": "gainResource" },
-            "resource": { "$ref": "#/definitions/resourceType" },
-            "amount": { "type": "integer", "minimum": 1 }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": ["op", "resource", "amount"],
-          "properties": {
-            "op": { "const": "spendResource" },
-            "resource": { "$ref": "#/definitions/resourceType" },
-            "amount": { "type": "integer", "minimum": 1 }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": ["op", "amount"],
-          "properties": {
-            "op": { "const": "gainSunlight" },
-            "amount": { "type": "integer", "minimum": 1 }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": ["op", "count"],
-          "properties": {
-            "op": { "const": "drawCards" },
-            "count": { "type": "integer", "minimum": 1 }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": ["op", "count"],
-          "properties": {
-            "op": { "const": "tuckCard" },
-            "count": { "type": "integer", "minimum": 1 }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": ["op", "amount"],
-          "properties": {
-            "op": { "const": "scorePoints" },
-            "amount": { "type": "integer", "minimum": 1 }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": ["op", "condition", "then"],
-          "properties": {
-            "op": { "const": "if" },
-            "condition": {
-              "type": "object",
-              "required": ["left", "operator", "right"],
-              "properties": {
-                "left": { "type": "string" },
-                "operator": { "type": "string", "enum": ["==", "!=", ">", ">=", "<", "<="] },
-                "right": {}
-              },
-              "additionalProperties": false
-            },
-            "then": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/effect" },
-              "minItems": 1
-            },
-            "else": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/effect" }
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": ["op", "options"],
-          "properties": {
-            "op": { "const": "choice" },
-            "options": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["label", "effects"],
-                "properties": {
-                  "label": { "type": "string", "minLength": 1 },
-                  "effects": {
-                    "type": "array",
-                    "items": { "$ref": "#/definitions/effect" },
-                    "minItems": 1
-                  }
-                },
-                "additionalProperties": false
-              },
-              "minItems": 2
-            }
-          },
-          "additionalProperties": false
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Blossom2 Power DSL",
+  "type": "object",
+  "required": ["trigger", "effects"],
+  "properties": {
+    "trigger": { "enum": ["onPlay", "onMature", "onActivate"] },
+    "action": { "enum": ["root", "toTheSun", "pollinate"] },
+    "effects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": { "enum": ["gainResource", "gainSunlight", "drawCards", "scorePoints"] },
+          "resource": { "enum": ["dew", "spores", "nectar", "humus"] },
+          "amount": { "type": "integer", "minimum": 1 }
         }
-      ]
+      }
     }
-  },
-  "type": "array",
-  "items": { "$ref": "#/definitions/effect" }
+  }
 }

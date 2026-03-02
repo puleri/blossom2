@@ -1,131 +1,54 @@
-# blossom2
-# Plant Biomes Engine Game --- Development Work Plan
+# blossom2 — MycoWings
 
-This document describes the work required to implement a complete,
-playable digital version of the plant-biome engine-building card game
-(inspired structurally by Wingspan) with a data-driven Power DSL.
+A Next.js + Firestore live prototype for a **Wingspan-style reskin** using the engine principles in this repository.
 
-------------------------------------------------------------------------
+## Reskin concept (v0)
+- **Theme:** Bioluminescent fungal ecosystems ("MycoWings")
+- **Equivalent lanes:**
+  - Understory → **Cavern** (Root action row)
+  - Oasis Edge → **Grove** (To the Sun action row)
+  - Meadow → **Glade** (Pollinate action row)
+  - Canopy → **Canopy** (placement row)
+- **Resources:** dew, spores, nectar, humus
+- **Growth:** sunlight tokens and maturity triggers
 
-## 1. Product Definition
+## Tech stack
+- Next.js (App Router, TypeScript)
+- Firebase Firestore
+- `onSnapshot` realtime synchronization for shared game state
 
-### 1.1 Game Summary
+## Implemented in this scaffold
+- Turn skeleton with actions: Grow, Root, To the Sun, Pollinate
+- Right-to-left row activation for action powers
+- Maturity trigger support (`onMature` fire-once flag)
+- Starter card set as data (`lib/game/cards.ts`)
+- Power DSL schema draft (`docs/power-dsl.schema.json`)
+- Vitest rules tests
 
--   Players build a tableau of Plant cards across biomes.
--   On a turn, a player chooses one action:
-    -   Grow: play a plant by paying Root resources and placing it into
-        a biome.
-    -   Root: gain Root resources by level, then activate plants in Root
-        biome right-to-left.
-    -   To the Sun: gain sunlight tokens by level, place onto plants
-        (respecting capacity), then activate plants right-to-left;
-        handle maturity.
-    -   Pollinate: draw cards by level (deck/tray), then activate plants
-        right-to-left.
+## Run locally
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Add environment variables in `.env.local`:
+   ```bash
+   NEXT_PUBLIC_FIREBASE_API_KEY=...
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+   ```
+3. Start dev server:
+   ```bash
+   npm run dev
+   ```
+4. Open `http://localhost:3000` and create a demo match.
 
-### 1.2 Core Resources
+## Firestore data model
+- Collection: `games`
+- Document ID: room ID (currently `demo-room`)
+- Document payload: serialized `GameState`
 
--   Root resources: water, nutrients, seeds, compost
--   Sunlight tokens represent plant growth.
--   Each plant has sunlightCapacity.
--   When sunlight_tokens == sunlightCapacity, the plant becomes mature
-    and may trigger onMature powers.
-
-### 1.3 Biomes and Activations
-
--   Understory → Root activation row
--   Oasis Edge → To the Sun activation row
--   Meadow → Pollinate activation row
--   Canopy → Placement biome
-
-------------------------------------------------------------------------
-
-## 2. Deliverables
-
-### MVP Requirements
-
--   Full match loop: Setup → Turns → Endgame → Scoring
--   Deck, hand, tableau, resources, sunlight tracking
--   Power DSL validation and interpreter
--   Right-to-left activation order
--   Endgame scoring breakdown
-
-------------------------------------------------------------------------
-
-## 3. Power DSL System
-
-### Requirements
-
--   JSON Schema stored in docs/power-dsl.schema.json
--   Runtime validator
--   Interpreter supporting:
-    -   if
-    -   choice
-    -   gainResource
-    -   spendResource
-    -   gainSunlight
-    -   drawCards
-    -   tuckCard
-    -   scorePoints
-
-### Triggers
-
--   onActivate (root \| pollinate \| toTheSun)
--   onPlay
--   onMature
-
-------------------------------------------------------------------------
-
-## 4. Core Rules Implementation
-
-### Grow
-
--   Validate cost and placement
--   Deduct resources
--   Place plant
--   Fire onPlay powers
-
-### Root
-
--   Grant resources by row level
--   Activate plants right-to-left
-
-### To the Sun
-
--   Grant sunlight by row level
--   Place sunlight tokens
--   Handle maturity triggers
--   Activate plants right-to-left
-
-### Pollinate
-
--   Draw cards by row level
--   Activate plants right-to-left
-
-------------------------------------------------------------------------
-
-## 5. Scoring
-
--   Base plant points
--   Tucked card scoring
--   Sunlight scoring rules
--   End-of-game winner determination
-
-------------------------------------------------------------------------
-
-## 6. Testing
-
--   Unit tests for DSL validation
--   Interpreter tests
--   Action tests
--   Activation order tests
--   Full match integration test
-
-------------------------------------------------------------------------
-
-## Definition of Done
-
-The game is complete when: - A full match plays from start to finish
-without errors. - All card powers execute via DSL interpreter. -
-Activation order is correct. - Maturity triggers fire exactly once. -
-Scoring breakdown is accurate. - Test suite passes.
+## Next suggested milestones
+- Expand card library to 80+ cards with strict DSL validation
+- Add setup/endgame/scoring breakdown screens
+- Add multiplayer identity/auth and room joining
+- Add deterministic shuffling + seed support
