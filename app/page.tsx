@@ -1,85 +1,114 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { activate, createGame, grow } from "../lib/game/rules";
-import { saveGame, subscribeGame } from "../lib/realtime";
-import type { ActivateAction, GameState } from "../lib/types";
+import { useMemo, useState } from "react";
+import { Firestore } from "firebase/firestore";
+import {
+  activateWithTransaction,
+  ActionError,
+  growWithTransaction,
+} from "@/lib/realtime";
 
-const GAME_ID = "demo-room";
+type Props = {
+  db?: Firestore;
+};
 
-export default function Home(): JSX.Element {
-  const [state, setState] = useState<GameState | null>(null);
+export default function Page({ db }: Props) {
+  const [gameId, setGameId] = useState("");
+  const [playerId, setPlayerId] = useState("");
+  const [turnNumber, setTurnNumber] = useState(0);
+  const [cardId, setCardId] = useState("");
+  const [biome, setBiome] = useState("understory");
+  const [error, setError] = useState<ActionError | null>(null);
+  const [status, setStatus] = useState("");
 
-  useEffect(() => subscribeGame(GAME_ID, setState), []);
+  const disabled = useMemo(() => !db || !gameId || !playerId || !cardId, [
+    db,
+    gameId,
+    playerId,
+    cardId,
+  ]);
 
-  const current = useMemo(() => state?.players.find((p) => p.id === state.currentPlayerId), [state]);
+  const handleGrow = async () => {
+    if (!db) {
+      setError({ code: "INVALID_STATE", message: "Firestore is not available." });
+      return;
+    }
 
-  const create = async (): Promise<void> => {
-    const g = createGame(GAME_ID);
-    await saveGame(g);
+    const result = await growWithTransaction(db, {
+      gameId,
+      playerId,
+      expectedTurnNumber: turnNumber,
+      cardId,
+      biome,
+    });
+
+    if (!result.ok) {
+      setStatus("");
+      setError(result.error);
+      return;
+    }
+
+    setError(null);
+    setStatus("Grow action submitted.");
+    setTurnNumber(result.game.turnNumber);
   };
 
-  const doGrow = async (cardId: string): Promise<void> => {
-    if (!state || !current) return;
-    await saveGame(grow(state, current.id, cardId));
-  };
+  const handleActivate = async () => {
+    if (!db) {
+      setError({ code: "INVALID_STATE", message: "Firestore is not available." });
+      return;
+    }
 
-  const doActivate = async (action: ActivateAction): Promise<void> => {
-    if (!state || !current) return;
-    await saveGame(activate(state, current.id, action));
-  };
+    const result = await activateWithTransaction(db, {
+      gameId,
+      playerId,
+      expectedTurnNumber: turnNumber,
+      cardId,
+      biome,
+    });
 
-  if (!state) {
-    return (
-      <main>
-        <h1>Blossom2: MycoWings (Live)</h1>
-        <p>Realtime match state is stored in Firestore via onSnapshot.</p>
-        <button onClick={create}>Create demo match</button>
-      </main>
-    );
-  }
+    if (!result.ok) {
+      setStatus("");
+      setError(result.error);
+      return;
+    }
+
+    setError(null);
+    setStatus("Activate action submitted.");
+    setTurnNumber(result.game.turnNumber);
+  };
 
   return (
-    <main className="grid">
-      <h1>Blossom2: MycoWings</h1>
-      <div className="card">
-        <strong>Turn {state.turn}</strong> · Current: {current?.name}
+    <main style={{ display: "grid", gap: 12, maxWidth: 420, margin: "2rem auto" }}>
+      <h1>Blossom 2</h1>
+
+      <input value={gameId} onChange={(e) => setGameId(e.target.value)} placeholder="Game ID" />
+      <input value={playerId} onChange={(e) => setPlayerId(e.target.value)} placeholder="Player ID" />
+      <input
+        value={turnNumber}
+        type="number"
+        onChange={(e) => setTurnNumber(Number(e.target.value))}
+        placeholder="Expected turn"
+      />
+      <input value={cardId} onChange={(e) => setCardId(e.target.value)} placeholder="Card ID" />
+      <input value={biome} onChange={(e) => setBiome(e.target.value)} placeholder="Biome" />
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="button" onClick={handleGrow} disabled={disabled}>
+          Grow
+        </button>
+        <button type="button" onClick={handleActivate} disabled={disabled}>
+          Activate
+        </button>
       </div>
 
-      <div className="grid cols-2">
-        {state.players.map((p) => (
-          <section className="card" key={p.id}>
-            <h3>{p.name}</h3>
-            <div className="small">Score: {p.score}</div>
-            <div className="small">Resources: {Object.entries(p.resources).map(([k, v]) => `${k}:${v}`).join(" · ")}</div>
-            {(["cavern", "grove", "glade", "canopy"] as const).map((biome) => (
-              <div className="biome" key={biome}>
-                <strong>{biome}</strong>
-                <ul>
-                  {p.tableau[biome].map((c) => (
-                    <li key={`${c.id}-${c.ownerId}`}>{c.name} ({c.sunlight}/{c.sunlightCapacity})</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </section>
-        ))}
-      </div>
+      {error ? (
+        <p style={{ color: "crimson" }}>
+          {error.message} ({error.code})
+        </p>
+      ) : null}
 
-      <section className="card">
-        <h3>Current hand</h3>
-        <div>{current?.hand.map((c) => <button key={c.id} onClick={() => doGrow(c.id)}>Grow {c.name}</button>)}</div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button onClick={() => doActivate("root")}>Root</button>
-          <button onClick={() => doActivate("toTheSun")}>To the Sun</button>
-          <button onClick={() => doActivate("pollinate")}>Pollinate</button>
-        </div>
-      </section>
-
-      <section className="card">
-        <h3>Game log</h3>
-        <pre>{state.log.join("\n")}</pre>
-      </section>
+      {status ? <p style={{ color: "green" }}>{status}</p> : null}
     </main>
   );
 }
