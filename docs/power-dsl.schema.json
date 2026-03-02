@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Blossom2 Power DSL",
+  "type": "object",
+  "required": ["trigger", "effects"],
+  "properties": {
+    "trigger": { "enum": ["onPlay", "onMature", "onActivate"] },
+    "action": { "enum": ["root", "toTheSun", "pollinate"] },
+    "effects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": { "enum": ["gainResource", "gainSunlight", "drawCards", "scorePoints"] },
+          "resource": { "enum": ["dew", "spores", "nectar", "humus"] },
+          "amount": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}
