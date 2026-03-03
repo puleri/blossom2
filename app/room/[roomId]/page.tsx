@@ -126,21 +126,32 @@ export default function RoomPage() {
 
           const existingData = existing.data() as Partial<RoomDoc>;
           const members = existingData.members ?? [];
+          const roomStatus = existingData.status ?? "lobby";
+          const isExistingMember = members.includes(uid);
           const seats = existingData.seats ?? DEFAULT_SEATS;
-          if (!members.includes(uid) && members.length >= seats) {
-            throw new Error("Room is full.");
+          if (roomStatus === "in_game") {
+            if (!isExistingMember) {
+              throw new Error("Game already started. Only existing room members can enter this room.");
+            }
+
+            setStatus("Game is in progress. Redirecting to Oasis...");
+            router.replace(`/oasis/${roomId}` as Route);
+          } else {
+            if (!isExistingMember && members.length >= seats) {
+              throw new Error("Room is full.");
+            }
+
+            await updateDoc(roomRef, {
+              members: arrayUnion(uid),
+              [`readyByUid.${uid}`]: false,
+              hostUid: existingData.hostUid ?? existingData.createdBy,
+              status: roomStatus,
+              seats,
+              updatedAt: serverTimestamp(),
+            });
+
+            setStatus("Joined room lobby.");
           }
-
-          await updateDoc(roomRef, {
-            members: arrayUnion(uid),
-            [`readyByUid.${uid}`]: false,
-            hostUid: existingData.hostUid ?? existingData.createdBy,
-            status: existingData.status ?? "lobby",
-            seats,
-            updatedAt: serverTimestamp(),
-          });
-
-          setStatus("Joined room lobby.");
         }
 
         unsubscribe = onSnapshot(roomRef, (snapshot) => {
@@ -163,7 +174,7 @@ export default function RoomPage() {
     return () => {
       unsubscribe?.();
     };
-  }, [mode, roomId]);
+  }, [mode, roomId, router]);
 
   const canToggleReady = Boolean(
     currentUid && room?.status === "lobby" && room.members.includes(currentUid),
