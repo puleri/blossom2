@@ -15,15 +15,26 @@
       "static/css/7cfb2f5ff2b454b5.css",
       "static/chunks/app/layout-a6a33dc5f11c15d8.js"
     ],
+    "/oasis/[gameId]/page": [
+      "static/chunks/webpack-09ab71dbf77d46c0.js",
+      "static/chunks/fd9d1056-b6e16a5f15b47ad4.js",
+      "static/chunks/23-f3de640b22ae4319.js",
+      "static/chunks/main-app-a675cca9115b811c.js",
+      "static/chunks/bc9e92e6-64d36749c4b16ac2.js",
+      "static/chunks/7c86ec74-82d534dc16f2a649.js",
+      "static/chunks/926-f8ee0175fdc7c4a3.js",
+      "static/chunks/138-381c328e1c17a295.js",
+      "static/chunks/app/oasis/[gameId]/page-55685aadd507cad7.js"
+    ],
     "/room/[roomId]/page": [
       "static/chunks/webpack-09ab71dbf77d46c0.js",
       "static/chunks/fd9d1056-b6e16a5f15b47ad4.js",
       "static/chunks/23-f3de640b22ae4319.js",
       "static/chunks/main-app-a675cca9115b811c.js",
-      "static/chunks/7c86ec74-82d534dc16f2a649.js",
       "static/chunks/bc9e92e6-64d36749c4b16ac2.js",
+      "static/chunks/7c86ec74-82d534dc16f2a649.js",
       "static/chunks/926-f8ee0175fdc7c4a3.js",
-      "static/chunks/app/room/[roomId]/page-583a57e338838490.js"
+      "static/chunks/app/room/[roomId]/page-e50e11b2a8ee17ab.js"
     ],
     "/page": [
       "static/chunks/webpack-09ab71dbf77d46c0.js",
