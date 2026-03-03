@@ -17,6 +17,7 @@ export type TurnGameState = {
   seed: number;
   createdAt: string;
   players: Record<string, PlayerIdentity>;
+  handsByPlayerId: Record<string, Card[]>;
   playerOrder: string[];
   currentPlayerId: string;
   turn: number;

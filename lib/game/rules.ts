@@ -14,6 +14,23 @@ const STARTING_DECK: Card[] = [
 
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
 const TRAY_SIZE = 3;
+const OPENING_HAND_SIZE = 2;
+
+function dealOpeningHands(
+  deck: Card[],
+  playerIds: string[],
+  cardsPerPlayer = OPENING_HAND_SIZE,
+): { deck: Card[]; handsByPlayerId: Record<string, Card[]> } {
+  const handsByPlayerId: Record<string, Card[]> = {};
+  let nextDeck = deck;
+
+  for (const playerId of playerIds) {
+    handsByPlayerId[playerId] = nextDeck.slice(0, cardsPerPlayer);
+    nextDeck = nextDeck.slice(cardsPerPlayer);
+  }
+
+  return { deck: nextDeck, handsByPlayerId };
+}
 
 function drawToTray(deck: Card[], tray: Card[], maxSize = TRAY_SIZE): { deck: Card[]; tray: Card[] } {
   if (tray.length >= maxSize || deck.length === 0) {
@@ -39,13 +56,15 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
   const createdAt = new Date().toISOString();
   const playerOrder = players.map((player) => player.id);
   const shuffledDeck = deterministicShuffle(STARTING_DECK, seed);
-  const setupCards = drawToTray(shuffledDeck, []);
+  const setupHands = dealOpeningHands(shuffledDeck, playerOrder);
+  const setupCards = drawToTray(setupHands.deck, []);
 
   return {
     gameId,
     seed,
     createdAt,
     players: Object.fromEntries(players.map((player) => [player.id, player])),
+    handsByPlayerId: setupHands.handsByPlayerId,
     playerOrder,
     currentPlayerId: playerOrder[0],
     turn: 1,
