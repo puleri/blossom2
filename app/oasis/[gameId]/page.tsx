@@ -6,7 +6,13 @@ import { useParams } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import { submitMoveIntent } from "../../../lib/moves-client";
 import { auth, db, ensureSignedIn } from "../../../lib/firebase";
-import { ACTION_TYPES, type ActionType, type TurnGameState } from "../../../lib/types";
+import {
+  ACTION_TYPES,
+  ACTIVATION_ROW_IDS,
+  ACTIVATION_ROW_METADATA,
+  type ActionType,
+  type TurnGameState,
+} from "../../../lib/types";
 import { getDisplayPlayerOrder } from "./player-order";
 
 type RoomStatus = "lobby" | "in_game" | "finished";
@@ -166,10 +172,16 @@ export default function OasisGamePage() {
 
                   <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Card container</div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-                    <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Row A</div>
-                    <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Row B</div>
-                    <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Row C</div>
+                  <div className="activation-row-grid">
+                    {ACTIVATION_ROW_IDS.map((rowId) => {
+                      const rowMetadata = ACTIVATION_ROW_METADATA[rowId];
+                      return (
+                        <div key={rowId} className="activation-row-card">
+                          <p className="activation-row-title">{rowMetadata.displayName}</p>
+                          <p className="activation-row-hint">Action hint: {rowMetadata.actionType}</p>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <footer style={{ fontSize: 13, color: "#444" }}>Summary: board details coming online.</footer>
