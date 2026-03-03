@@ -1,0 +1,109 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
+import { auth, db, ensureSignedIn } from "../../../lib/firebase";
+
+type RoomDoc = {
+  roomId: string;
+  createdBy: string;
+  createdAt: unknown;
+  updatedAt: unknown;
+  members: string[];
+};
+
+export default function RoomPage() {
+  const params = useParams<{ roomId: string }>();
+  const searchParams = useSearchParams();
+
+  const mode = searchParams.get("mode") === "create" ? "create" : "join";
+  const roomId = useMemo(() => String(params.roomId ?? ""), [params.roomId]);
+
+  const [status, setStatus] = useState("Preparing room...");
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!roomId) {
+      setError("Room ID is missing.");
+      return;
+    }
+
+    let unsubscribe: (() => void) | undefined;
+
+    const setupRoom = async () => {
+      try {
+        setError(null);
+        const uid = await ensureSignedIn(auth);
+        const roomRef = doc(db, "rooms", roomId);
+
+        if (mode === "create") {
+          await setDoc(
+            roomRef,
+            {
+              roomId,
+              createdBy: uid,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              members: [uid],
+            } satisfies RoomDoc,
+            { merge: true },
+          );
+
+          setStatus("Room created. Share this room ID with your friend.");
+        } else {
+          const existing = await getDoc(roomRef);
+          if (!existing.exists()) {
+            throw new Error("Room does not exist. Ask host to create it first.");
+          }
+
+          await updateDoc(roomRef, {
+            members: arrayUnion(uid),
+            updatedAt: serverTimestamp(),
+          });
+
+          setStatus("Joined room successfully.");
+        }
+
+        unsubscribe = onSnapshot(roomRef, (snapshot) => {
+          if (!snapshot.exists()) {
+            setMemberCount(0);
+            return;
+          }
+
+          const data = snapshot.data() as Partial<RoomDoc>;
+          setMemberCount(Array.isArray(data.members) ? data.members.length : 0);
+        });
+      } catch (setupError) {
+        const message =
+          setupError instanceof Error ? setupError.message : "Unable to open room.";
+        setError(message);
+      }
+    };
+
+    setupRoom();
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [mode, roomId]);
+
+  return (
+    <main style={{ display: "grid", gap: 12, maxWidth: 520, margin: "48px auto" }}>
+      <h1>Room: {roomId}</h1>
+      <p>Mode: {mode}</p>
+      <p>{status}</p>
+      {memberCount !== null ? <p>Connected members: {memberCount}</p> : null}
+      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+    </main>
+  );
+}
