@@ -55,7 +55,10 @@ function executeEffect(context: ExecutionContext, effect: Effect): void {
   }
 }
 
-function evaluateCondition(context: ExecutionContext, condition: Effect & { op: "if" }["condition"]): boolean {
+function evaluateCondition(
+  context: ExecutionContext,
+  condition: Extract<Effect, { op: "if" }>["condition"],
+): boolean {
   const left = context.conditionValues?.[condition.left];
   const right = condition.right;
 
