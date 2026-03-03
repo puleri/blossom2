@@ -7,6 +7,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { submitMoveIntent } from "../../../lib/moves-client";
 import { auth, db, ensureSignedIn } from "../../../lib/firebase";
 import { ACTION_TYPES, type ActionType, type TurnGameState } from "../../../lib/types";
+import { getDisplayPlayerOrder } from "./player-order";
 
 type RoomStatus = "lobby" | "in_game" | "finished";
 
@@ -77,6 +78,10 @@ export default function OasisGamePage() {
 
   const gameState = room?.game?.state ?? null;
   const isInGame = room?.status === "in_game" && room.game?.phase === "inProgress" && Boolean(gameState);
+  const displayPlayerOrder = useMemo(
+    () => getDisplayPlayerOrder(gameState?.playerOrder ?? [], currentUid),
+    [currentUid, gameState?.playerOrder],
+  );
 
   const handleAction = async (actionType: ActionType) => {
     if (!gameState || !room?.game || isSubmitting) {
@@ -122,9 +127,9 @@ export default function OasisGamePage() {
 
       {isInGame && gameState ? (
         <section style={{ display: "grid", gap: 10 }}>
-          <h2>Game Board (Scaffold)</h2>
+          <h2>Game Board</h2>
           <p>
-            Current player: <strong>{gameState.currentPlayerId}</strong>
+            Current player: <strong>{gameState.players[gameState.currentPlayerId]?.name ?? gameState.currentPlayerId}</strong>
             {currentUid && gameState.currentPlayerId === currentUid ? " (you)" : ""}
           </p>
           <p>
@@ -132,6 +137,52 @@ export default function OasisGamePage() {
           </p>
           <p>Last action: {gameState.lastAction ?? "none"}</p>
 
+          <section style={{ display: "grid", gap: 12 }}>
+            {displayPlayerOrder.map((playerId) => {
+              const player = gameState.players[playerId];
+
+              return (
+                <article
+                  key={playerId}
+                  style={{ border: "1px solid #ddd", borderRadius: 6, padding: 10, display: "grid", gap: 8 }}
+                >
+                  <header style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <strong>{player?.name ?? playerId}</strong>
+                    {currentUid === playerId ? (
+                      <span
+                        style={{
+                          fontSize: 12,
+                          padding: "2px 6px",
+                          borderRadius: 12,
+                          background: "#e8f5e9",
+                          color: "#1b5e20",
+                          fontWeight: 700,
+                        }}
+                      >
+                        You
+                      </span>
+                    ) : null}
+                  </header>
+
+                  <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Card container</div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                    <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Row A</div>
+                    <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Row B</div>
+                    <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Row C</div>
+                  </div>
+
+                  <footer style={{ fontSize: 13, color: "#444" }}>Summary: board details coming online.</footer>
+                </article>
+              );
+            })}
+          </section>
+        </section>
+      ) : null}
+
+      {isInGame && gameState ? (
+        <section style={{ display: "grid", gap: 10 }}>
+          <h2>Actions</h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {ACTION_TYPES.map((actionType) => (
               <button
