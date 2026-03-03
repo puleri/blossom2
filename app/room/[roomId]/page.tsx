@@ -272,9 +272,9 @@ export default function RoomPage() {
           startedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           game: {
-            phase: "inProgress",
-            actionCounter: 0,
             state: createGame(roomId, players, seed),
+            actionCounter: 0,
+            phase: "inProgress",
           },
         });
       });
