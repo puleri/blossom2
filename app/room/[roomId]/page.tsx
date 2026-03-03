@@ -1,7 +1,8 @@
 "use client";
 
+import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   arrayUnion,
   doc,
@@ -49,6 +50,8 @@ function displayNameForMember(memberUid: string, currentUid: string | null): str
 
 export default function RoomPage() {
   const params = useParams<{ roomId: string }>();
+  const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const mode = searchParams.get("mode") === "create" ? "create" : "join";
@@ -59,6 +62,20 @@ export default function RoomPage() {
   const [currentUid, setCurrentUid] = useState<string | null>(null);
   const [room, setRoom] = useState<RoomDoc | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const shouldRedirectToOasis =
+      room?.status === "in_game" &&
+      room.game?.phase === "inProgress" &&
+      pathname.startsWith("/room/") &&
+      roomId;
+
+    if (!shouldRedirectToOasis) {
+      return;
+    }
+
+    router.replace(`/oasis/${roomId}` as Route);
+  }, [pathname, room, roomId, router]);
 
   useEffect(() => {
     if (!roomId) {
