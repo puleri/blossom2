@@ -1,5 +1,5 @@
 import { deterministicShuffle } from "./shuffle";
-import type { Card, PlayerIdentity, TurnGameState } from "../types";
+import { ACTION_TYPES, type ActionType, type Card, type PlayerIdentity, type TurnGameState } from "../types";
 
 const STARTING_DECK: Card[] = [
   { id: "card-1", name: "Sprout" },
@@ -11,6 +11,12 @@ const STARTING_DECK: Card[] = [
   { id: "card-7", name: "Cedar" },
   { id: "card-8", name: "Birch" },
 ];
+
+const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
+
+export function isTurnActionId(actionType: string): actionType is ActionType {
+  return TURN_ACTION_IDS.has(actionType);
+}
 
 export function createGame(gameId: string, players: PlayerIdentity[], seed: number): TurnGameState {
   if (players.length < 2) {

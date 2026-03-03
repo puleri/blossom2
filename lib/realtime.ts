@@ -5,7 +5,8 @@ import {
   serverTimestamp,
   Transaction,
 } from "firebase/firestore";
-import { biomeLabel, normalizeBiomeName } from "./game/biome-naming";
+import { biomeForRow, biomeLabel, rowActivationOrder, rowDisplayName } from "./game/biome-naming";
+import type { ActivationRowId, Biome } from "./types";
 
 export type ActionErrorCode =
   | "NOT_YOUR_TURN"
@@ -26,7 +27,7 @@ export type ActionResult<TGame = GameDoc> =
 
 type PlayerState = {
   hand: string[];
-  tableau: Record<string, string[]>;
+  tableau: Partial<Record<Biome, string[]>>;
 };
 
 type GameDoc = {
@@ -43,14 +44,14 @@ export type GrowInput = {
   playerId: string;
   expectedTurnNumber: number;
   cardId: string;
-  biome: string;
+  biome: Biome;
 };
 
 export type ActivateInput = {
   gameId: string;
   playerId: string;
   expectedTurnNumber: number;
-  biome: string;
+  rowId: ActivationRowId;
   cardId: string;
 };
 
@@ -133,13 +134,8 @@ export async function growWithTransaction(
       return actionError("CARD_NOT_IN_HAND", "Card no longer in hand.");
     }
 
-    const normalizedBiome = normalizeBiomeName(input.biome);
-    if (!normalizedBiome) {
-      return actionError("INVALID_STATE", "Unknown biome.");
-    }
-
     const hand = player.hand.filter((cardId) => cardId !== input.cardId);
-    const biomeCards = [...(player.tableau[normalizedBiome] ?? []), input.cardId];
+    const biomeCards = [...(player.tableau[input.biome] ?? []), input.cardId];
 
     const updatedGame = {
       ...game,
@@ -150,7 +146,7 @@ export async function growWithTransaction(
           hand,
           tableau: {
             ...player.tableau,
-            [normalizedBiome]: biomeCards,
+            [input.biome]: biomeCards,
           },
         },
       },
@@ -160,8 +156,8 @@ export async function growWithTransaction(
       type: "grow",
       playerId: input.playerId,
       cardId: input.cardId,
-      biome: normalizedBiome,
-      biomeLabel: biomeLabel(normalizedBiome),
+      biome: input.biome,
+      biomeLabel: biomeLabel(input.biome),
       turnNumber: game.turnNumber,
     });
 
@@ -193,12 +189,8 @@ export async function activateWithTransaction(
       return actionError("INVALID_STATE", "Player not found.");
     }
 
-    const normalizedBiome = normalizeBiomeName(input.biome);
-    if (!normalizedBiome) {
-      return actionError("INVALID_STATE", "Unknown biome.");
-    }
-
-    const biomeCards = player.tableau[normalizedBiome] ?? [];
+    const biome = biomeForRow(input.rowId);
+    const biomeCards = player.tableau[biome] ?? [];
     if (!biomeCards.includes(input.cardId)) {
       return actionError("CARD_NOT_FOUND", "Card is no longer available to activate.");
     }
@@ -207,8 +199,11 @@ export async function activateWithTransaction(
       type: "activate",
       playerId: input.playerId,
       cardId: input.cardId,
-      biome: normalizedBiome,
-      biomeLabel: biomeLabel(normalizedBiome),
+      biome,
+      biomeLabel: biomeLabel(biome),
+      rowId: input.rowId,
+      rowLabel: rowDisplayName(input.rowId),
+      activationOrder: rowActivationOrder(input.rowId),
       turnNumber: game.turnNumber,
     });
 

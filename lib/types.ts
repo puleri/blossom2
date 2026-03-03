@@ -8,7 +8,8 @@ export type Card = {
   name: string;
 };
 
-export type ActionType = "grow" | "root" | "toTheSun" | "pollinate";
+export const ACTION_TYPES = ["grow", "root", "toTheSun", "pollinate"] as const;
+export type ActionType = (typeof ACTION_TYPES)[number];
 
 
 export type TurnGameState = {
@@ -63,9 +64,55 @@ export interface EndgameResult {
 }
 
 export type Resource = "dew" | "spores" | "nectar" | "humus";
-export type Biome = "understory" | "oasisEdge" | "meadow" | "canopy";
+export const BIOME_IDS = ["understory", "oasisEdge", "meadow", "canopy"] as const;
+export type Biome = (typeof BIOME_IDS)[number];
+
+export const ACTIVATION_ROW_IDS = [
+  "understoryRow",
+  "oasisEdgeRow",
+  "meadowRow",
+] as const;
+export type ActivationRowId = (typeof ACTIVATION_ROW_IDS)[number];
+
 export type Trigger = "onPlay" | "onMature" | "onActivate";
 export type ActivateAction = "root" | "toTheSun" | "pollinate";
+
+export type ActivationOrder = "leftToRight" | "rightToLeft";
+
+export type ActivationRowMetadata = {
+  biome: Exclude<Biome, "canopy">;
+  displayName: string;
+  actionType: ActivateAction;
+  activationOrder: ActivationOrder;
+};
+
+export const ACTIVATION_ROW_METADATA: Record<ActivationRowId, ActivationRowMetadata> = {
+  understoryRow: {
+    biome: "understory",
+    displayName: "Understory",
+    actionType: "root",
+    activationOrder: "rightToLeft",
+  },
+  oasisEdgeRow: {
+    biome: "oasisEdge",
+    displayName: "Oasis Edge",
+    actionType: "toTheSun",
+    activationOrder: "rightToLeft",
+  },
+  meadowRow: {
+    biome: "meadow",
+    displayName: "Meadow",
+    actionType: "pollinate",
+    activationOrder: "rightToLeft",
+  },
+};
+
+export const BIOME_METADATA: Record<Biome, { displayName: string; rowId: ActivationRowId | null }> = {
+  canopy: { displayName: "Canopy", rowId: null },
+  understory: { displayName: "Understory", rowId: "understoryRow" },
+  oasisEdge: { displayName: "Oasis Edge", rowId: "oasisEdgeRow" },
+  meadow: { displayName: "Meadow", rowId: "meadowRow" },
+};
 
 export type Effect =
   | { type: "gainResource"; resource: Resource; amount: number }
