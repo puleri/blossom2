@@ -114,7 +114,7 @@ export async function growWithTransaction(
 ): Promise<ActionResult> {
   const gameRef = doc(db, "games", input.gameId);
 
-  return runTransaction(db, async (tx) => {
+  return runTransaction<ActionResult>(db, async (tx): Promise<ActionResult> => {
     const gameSnap = await tx.get(gameRef);
 
     if (!gameSnap.exists()) {
@@ -163,7 +163,7 @@ export async function growWithTransaction(
       turnNumber: game.turnNumber,
     });
 
-    return { ok: true, game: committed };
+    return { ok: true as const, game: committed };
   }).catch(() => actionError("UNKNOWN", "Unable to complete Grow action."));
 }
 
@@ -173,7 +173,7 @@ export async function activateWithTransaction(
 ): Promise<ActionResult> {
   const gameRef = doc(db, "games", input.gameId);
 
-  return runTransaction(db, async (tx) => {
+  return runTransaction<ActionResult>(db, async (tx): Promise<ActionResult> => {
     const gameSnap = await tx.get(gameRef);
 
     if (!gameSnap.exists()) {
@@ -209,6 +209,6 @@ export async function activateWithTransaction(
       turnNumber: game.turnNumber,
     });
 
-    return { ok: true, game: committed };
+    return { ok: true as const, game: committed };
   }).catch(() => actionError("UNKNOWN", "Unable to complete Activate action."));
 }
