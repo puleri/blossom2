@@ -1,7 +1,9 @@
 import schema from "../../../docs/power-dsl.schema.json";
 import type { Effect } from "../types";
 
-const resourceTypes = new Set((schema.definitions.resourceType as { enum: string[] }).enum);
+const resourceTypeEnum =
+  schema.properties.effects.items.properties.resource.enum satisfies readonly string[];
+const resourceTypes = new Set<string>(resourceTypeEnum);
 
 export class PowerDslValidationError extends Error {}
 
