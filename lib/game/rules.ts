@@ -13,6 +13,19 @@ const STARTING_DECK: Card[] = [
 ];
 
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
+const TRAY_SIZE = 3;
+
+function drawToTray(deck: Card[], tray: Card[], maxSize = TRAY_SIZE): { deck: Card[]; tray: Card[] } {
+  if (tray.length >= maxSize || deck.length === 0) {
+    return { deck, tray };
+  }
+
+  const cardsNeeded = maxSize - tray.length;
+  return {
+    tray: [...tray, ...deck.slice(0, cardsNeeded)],
+    deck: deck.slice(cardsNeeded),
+  };
+}
 
 export function isTurnActionId(actionType: string): actionType is ActionType {
   return TURN_ACTION_IDS.has(actionType);
@@ -25,6 +38,8 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
 
   const createdAt = new Date().toISOString();
   const playerOrder = players.map((player) => player.id);
+  const shuffledDeck = deterministicShuffle(STARTING_DECK, seed);
+  const setupCards = drawToTray(shuffledDeck, []);
 
   return {
     gameId,
@@ -34,7 +49,30 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
     playerOrder,
     currentPlayerId: playerOrder[0],
     turn: 1,
-    deck: deterministicShuffle(STARTING_DECK, seed),
+    deck: setupCards.deck,
+    tray: setupCards.tray,
+  };
+}
+
+export function takeTrayCard(game: TurnGameState, trayIndex: number): { game: TurnGameState; card: Card | null } {
+  if (trayIndex < 0 || trayIndex >= game.tray.length) {
+    return { game, card: null };
+  }
+
+  const card = game.tray[trayIndex] ?? null;
+  if (!card) {
+    return { game, card: null };
+  }
+
+  const trayWithoutCard = game.tray.filter((_, index) => index !== trayIndex);
+  const nextCards = drawToTray(game.deck, trayWithoutCard);
+  return {
+    card,
+    game: {
+      ...game,
+      deck: nextCards.deck,
+      tray: nextCards.tray,
+    },
   };
 }
 

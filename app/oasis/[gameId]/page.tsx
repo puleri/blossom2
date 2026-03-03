@@ -143,6 +143,33 @@ export default function OasisGamePage() {
           </p>
           <p>Last action: {gameState.lastAction ?? "none"}</p>
 
+          <section style={{ display: "grid", gap: 8 }}>
+            <h3>Plant Tray</h3>
+            <p>
+              Draw pile: <strong>{gameState.deck.length}</strong>
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+              {Array.from({ length: 3 }, (_, slotIdx) => {
+                const card = gameState.tray[slotIdx];
+                return (
+                  <div
+                    key={`tray-slot-${slotIdx}`}
+                    style={{ border: "1px solid #bbb", borderRadius: 6, padding: 10, minHeight: 56 }}
+                  >
+                    {card ? (
+                      <>
+                        <strong>{card.name}</strong>
+                        <p style={{ margin: "4px 0 0", fontSize: 12, color: "#555" }}>{card.id}</p>
+                      </>
+                    ) : (
+                      <p style={{ margin: 0, color: "#777" }}>Empty</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
           <section style={{ display: "grid", gap: 12 }}>
             {displayPlayerOrder.map((playerId) => {
               const player = gameState.players[playerId];
