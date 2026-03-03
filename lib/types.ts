@@ -21,6 +21,7 @@ export type TurnGameState = {
   currentPlayerId: string;
   turn: number;
   deck: Card[];
+  tray: Card[];
   lastAction?: ActionType;
 };
 

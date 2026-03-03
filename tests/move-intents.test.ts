@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyMoveIntent } from "../lib/game/intents";
-import { createGame } from "../lib/game/rules";
+import { createGame, takeTrayCard } from "../lib/game/rules";
 
 const game = createGame(
   "game-1",
@@ -12,6 +12,11 @@ const game = createGame(
 );
 
 describe("applyMoveIntent", () => {
+  it("initializes game with a 3-card tray and remaining draw pile", () => {
+    expect(game.tray).toHaveLength(3);
+    expect(game.deck).toHaveLength(5);
+  });
+
   it("returns NOT_YOUR_TURN when actor is not active player", () => {
     const result = applyMoveIntent(
       game,
@@ -55,5 +60,28 @@ describe("applyMoveIntent", () => {
       expect(result.actionCounter).toBe(1);
       expect(result.state.lastAction).toBe("pollinate");
     }
+  });
+
+  it("refills tray after taking a tray card while deck has cards", () => {
+    const beforeTakeDeck = game.deck.length;
+    const taken = takeTrayCard(game, 1);
+
+    expect(taken.card).not.toBeNull();
+    expect(taken.game.tray).toHaveLength(3);
+    expect(taken.game.deck).toHaveLength(beforeTakeDeck - 1);
+  });
+
+  it("allows tray to shrink when draw pile is exhausted", () => {
+    const tinyGame = {
+      ...game,
+      tray: game.tray.slice(0, 2),
+      deck: [],
+    };
+
+    const taken = takeTrayCard(tinyGame, 0);
+
+    expect(taken.card).not.toBeNull();
+    expect(taken.game.deck).toHaveLength(0);
+    expect(taken.game.tray).toHaveLength(1);
   });
 });
