@@ -1,5 +1,7 @@
 export type ResourceType = "water" | "nutrients" | "seeds" | "compost";
 
+export const TRIGGER_TYPES = ["onPlay", "onActivate", "onMature"] as const;
+
 export type Condition = {
   left: string;
   operator: "==" | "!=" | ">" | ">=" | "<" | "<=";
@@ -16,7 +18,7 @@ export type Effect =
   | { op: "if"; condition: Condition; then: Effect[]; else?: Effect[] }
   | { op: "choice"; options: Array<{ label: string; effects: Effect[] }> };
 
-export type TriggerType = "onPlay" | "onActivate" | "onMature";
+export type TriggerType = (typeof TRIGGER_TYPES)[number];
 
 export type CardPowerSet = Partial<Record<TriggerType, Effect[]>>;
 

@@ -1,13 +1,11 @@
-import type { ActivateAction, Biome } from "../types";
-
-export const BIOME_NAMES = {
-  placementBiome: "Canopy",
-  activationRows: {
-    root: "Understory",
-    toTheSun: "Oasis Edge",
-    pollinate: "Meadow",
-  },
-} as const;
+import {
+  ACTIVATION_ROW_METADATA,
+  BIOME_METADATA,
+  type ActivateAction,
+  type ActivationOrder,
+  type ActivationRowId,
+  type Biome,
+} from "../types";
 
 const BIOME_ALIASES: Record<string, Biome> = {
   cavern: "understory",
@@ -20,22 +18,43 @@ const BIOME_ALIASES: Record<string, Biome> = {
   canopy: "canopy",
 };
 
-const BIOME_LABELS: Record<Biome, string> = {
-  canopy: BIOME_NAMES.placementBiome,
-  understory: BIOME_NAMES.activationRows.root,
-  oasisEdge: BIOME_NAMES.activationRows.toTheSun,
-  meadow: BIOME_NAMES.activationRows.pollinate,
-};
-
 export function normalizeBiomeName(value: string): Biome | null {
   const normalized = value.trim().toLowerCase();
   return BIOME_ALIASES[normalized] ?? null;
 }
 
 export function biomeLabel(biome: Biome): string {
-  return BIOME_LABELS[biome];
+  return BIOME_METADATA[biome].displayName;
 }
 
-export function actionRowLabel(action: ActivateAction): string {
-  return BIOME_NAMES.activationRows[action];
+export function rowDisplayName(rowId: ActivationRowId): string {
+  return ACTIVATION_ROW_METADATA[rowId].displayName;
+}
+
+export function rowActionType(rowId: ActivationRowId): ActivateAction {
+  return ACTIVATION_ROW_METADATA[rowId].actionType;
+}
+
+export function rowActivationOrder(rowId: ActivationRowId): ActivationOrder {
+  return ACTIVATION_ROW_METADATA[rowId].activationOrder;
+}
+
+export function biomeForRow(rowId: ActivationRowId): Biome {
+  return ACTIVATION_ROW_METADATA[rowId].biome;
+}
+
+export function rowIdForBiome(biome: Biome): ActivationRowId | null {
+  return BIOME_METADATA[biome].rowId;
+}
+
+export function rowIdForAction(actionType: ActivateAction): ActivationRowId {
+  const rowEntry = Object.entries(ACTIVATION_ROW_METADATA).find(
+    ([, metadata]) => metadata.actionType === actionType,
+  );
+
+  if (!rowEntry) {
+    throw new Error(`No activation row found for action '${actionType}'`);
+  }
+
+  return rowEntry[0] as ActivationRowId;
 }
