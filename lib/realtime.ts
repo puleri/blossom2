@@ -1,9 +1,11 @@
 import {
+  DocumentData,
   doc,
   Firestore,
   runTransaction,
   serverTimestamp,
   Transaction,
+  UpdateData,
 } from "firebase/firestore";
 import { biomeForRow, biomeLabel, rowActivationOrder, rowDisplayName } from "./game/biome-naming";
 import type { ActivationRowId, Biome } from "./types";
@@ -102,7 +104,7 @@ const commitGameUpdate = (
     history: [...(game.history ?? []), historyEvent],
   };
 
-  tx.update(gameRef, updatedGame as Record<string, unknown>);
+  tx.update(gameRef, updatedGame as UpdateData<DocumentData>);
   return updatedGame;
 };
 
