@@ -5,6 +5,7 @@ import {
   serverTimestamp,
   Transaction,
 } from "firebase/firestore";
+import { biomeLabel, normalizeBiomeName } from "./game/biome-naming";
 
 export type ActionErrorCode =
   | "NOT_YOUR_TURN"
@@ -132,8 +133,13 @@ export async function growWithTransaction(
       return actionError("CARD_NOT_IN_HAND", "Card no longer in hand.");
     }
 
+    const normalizedBiome = normalizeBiomeName(input.biome);
+    if (!normalizedBiome) {
+      return actionError("INVALID_STATE", "Unknown biome.");
+    }
+
     const hand = player.hand.filter((cardId) => cardId !== input.cardId);
-    const biomeCards = [...(player.tableau[input.biome] ?? []), input.cardId];
+    const biomeCards = [...(player.tableau[normalizedBiome] ?? []), input.cardId];
 
     const updatedGame = {
       ...game,
@@ -144,7 +150,7 @@ export async function growWithTransaction(
           hand,
           tableau: {
             ...player.tableau,
-            [input.biome]: biomeCards,
+            [normalizedBiome]: biomeCards,
           },
         },
       },
@@ -154,7 +160,8 @@ export async function growWithTransaction(
       type: "grow",
       playerId: input.playerId,
       cardId: input.cardId,
-      biome: input.biome,
+      biome: normalizedBiome,
+      biomeLabel: biomeLabel(normalizedBiome),
       turnNumber: game.turnNumber,
     });
 
@@ -186,7 +193,12 @@ export async function activateWithTransaction(
       return actionError("INVALID_STATE", "Player not found.");
     }
 
-    const biomeCards = player.tableau[input.biome] ?? [];
+    const normalizedBiome = normalizeBiomeName(input.biome);
+    if (!normalizedBiome) {
+      return actionError("INVALID_STATE", "Unknown biome.");
+    }
+
+    const biomeCards = player.tableau[normalizedBiome] ?? [];
     if (!biomeCards.includes(input.cardId)) {
       return actionError("CARD_NOT_FOUND", "Card is no longer available to activate.");
     }
@@ -195,7 +207,8 @@ export async function activateWithTransaction(
       type: "activate",
       playerId: input.playerId,
       cardId: input.cardId,
-      biome: input.biome,
+      biome: normalizedBiome,
+      biomeLabel: biomeLabel(normalizedBiome),
       turnNumber: game.turnNumber,
     });
 
