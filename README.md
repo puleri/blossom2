@@ -71,6 +71,14 @@ A Next.js + Firestore live prototype for a **Wingspan-style reskin** using the e
 - Add multiplayer identity/auth and room joining
 - Add deterministic shuffling + seed support
 
+## Move submission flow
+- Clients submit turn intents to `POST /api/rooms/{roomId}/moves` instead of writing gameplay state directly.
+- Server validates auth token, room membership, active player, phase, and action legality.
+- Move application runs through shared rules logic (`lib/game/intents.ts` + `lib/game/rules.ts`).
+- Firestore transaction enforces optimistic concurrency using `expectedTurn` + `expectedActionCounter`.
+- Error codes returned for UI handling: `NOT_YOUR_TURN`, `INVALID_ACTION`, `STALE_STATE`.
+- Realtime updates continue over `onSnapshot` as a read-only channel for game state.
+
 ## Firebase room flow
 - `Create Room` signs the user in anonymously and creates/updates `rooms/{roomId}` with the current user as a member.
 - `Join Room` signs the user in anonymously, verifies the room exists, and adds the user to `members`.

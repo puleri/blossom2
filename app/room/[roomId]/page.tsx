@@ -11,6 +11,7 @@ import {
   updateDoc,
   arrayUnion,
 } from "firebase/firestore";
+import { createGame } from "../../../lib/game/rules";
 import { auth, db, ensureSignedIn } from "../../../lib/firebase";
 
 type RoomDoc = {
@@ -19,6 +20,11 @@ type RoomDoc = {
   createdAt: unknown;
   updatedAt: unknown;
   members: string[];
+  game?: {
+    phase: "waiting" | "inProgress" | "finished";
+    actionCounter: number;
+    state?: unknown;
+  };
 };
 
 export default function RoomPage() {
@@ -55,6 +61,11 @@ export default function RoomPage() {
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
               members: [uid],
+              game: {
+                phase: "waiting",
+                actionCounter: 0,
+                state: null,
+              },
             } satisfies RoomDoc,
             { merge: true },
           );
@@ -66,9 +77,29 @@ export default function RoomPage() {
             throw new Error("Room does not exist. Ask host to create it first.");
           }
 
+          const existingData = existing.data() as Partial<RoomDoc>;
+          const nextMembers = Array.from(new Set([...(existingData.members ?? []), uid]));
+          const shouldStartGame = !existingData.game?.state && nextMembers.length >= 2;
+
           await updateDoc(roomRef, {
             members: arrayUnion(uid),
             updatedAt: serverTimestamp(),
+            ...(shouldStartGame
+              ? {
+                  game: {
+                    phase: "inProgress",
+                    actionCounter: 0,
+                    state: createGame(
+                      roomId,
+                      nextMembers.slice(0, 2).map((memberId, idx) => ({
+                        id: memberId,
+                        name: `Player ${idx + 1}`,
+                      })),
+                      Date.now(),
+                    ),
+                  },
+                }
+              : {}),
           });
 
           setStatus("Joined room successfully.");
