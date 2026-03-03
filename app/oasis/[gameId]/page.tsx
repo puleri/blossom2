@@ -3,15 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { doc, onSnapshot } from "firebase/firestore";
 import { submitMoveIntent } from "../../../lib/moves-client";
-import { auth, db, ensureSignedIn } from "../../../lib/firebase";
+import { auth, ensureSignedIn } from "../../../lib/firebase";
+import type { ProjectedTurnGameState } from "../../../lib/game/projection";
 import {
   ACTION_TYPES,
   ACTIVATION_ROW_IDS,
   ACTIVATION_ROW_METADATA,
   type ActionType,
-  type TurnGameState,
 } from "../../../lib/types";
 import { getDisplayPlayerOrder } from "./player-order";
 
@@ -23,9 +22,13 @@ type RoomDoc = {
   game?: {
     phase: "waiting" | "inProgress" | "finished";
     actionCounter: number;
-    state?: TurnGameState | null;
+    state?: ProjectedTurnGameState | null;
   };
 };
+
+type RoomSnapshotResponse =
+  | { ok: true; room: RoomDoc }
+  | { ok: false; error: { code: "NOT_AUTHENTICATED" | "INVALID_ACTION"; message: string } };
 
 export default function OasisGamePage() {
   const params = useParams<{ gameId: string }>();
@@ -44,28 +47,60 @@ export default function OasisGamePage() {
       return;
     }
 
-    const roomRef = doc(db, "rooms", gameId);
-    const unsubscribe = onSnapshot(
-      roomRef,
-      (snapshot) => {
-        if (!snapshot.exists()) {
-          setRoom(null);
-          setRoomMissing(true);
-          setStatus("Game not found.");
+    let isMounted = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const fetchProjection = async () => {
+      try {
+        await ensureSignedIn(auth);
+        const idToken = await auth.currentUser?.getIdToken();
+        if (!idToken) {
+          throw new Error("Unable to authenticate.");
+        }
+
+        const response = await fetch(`/api/rooms/${gameId}/state`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as RoomSnapshotResponse;
+
+        if (!isMounted) {
           return;
         }
 
-        setRoomMissing(false);
-        setRoom(snapshot.data() as RoomDoc);
-        setStatus("Live game connected.");
-      },
-      (snapshotError) => {
-        setError(snapshotError.message);
-      },
-    );
+        if (!response.ok || !payload.ok) {
+          if (response.status === 404) {
+            setRoom(null);
+            setRoomMissing(true);
+            setStatus("Game not found.");
+            setError(null);
+          } else {
+            setError(payload.ok ? "Unable to load game state." : payload.error.message);
+          }
+        } else {
+          setRoomMissing(false);
+          setRoom(payload.room);
+          setStatus("Live game connected.");
+          setError(null);
+        }
+      } catch (snapshotError) {
+        if (isMounted) {
+          setError(snapshotError instanceof Error ? snapshotError.message : "Unable to load game state.");
+        }
+      } finally {
+        if (isMounted) {
+          timer = setTimeout(fetchProjection, 2000);
+        }
+      }
+    };
+
+    void fetchProjection();
 
     return () => {
-      unsubscribe();
+      isMounted = false;
+      if (timer) {
+        clearTimeout(timer);
+      }
     };
   }, [gameId]);
 
@@ -135,7 +170,7 @@ export default function OasisGamePage() {
         <section style={{ display: "grid", gap: 10 }}>
           <h2>Game Board</h2>
           <p>
-            Current player: <strong>{gameState.players[gameState.currentPlayerId]?.name ?? gameState.currentPlayerId}</strong>
+            Current player: <strong>{gameState.players[gameState.currentPlayerId]?.identity.name ?? gameState.currentPlayerId}</strong>
             {currentUid && gameState.currentPlayerId === currentUid ? " (you)" : ""}
           </p>
           <p>
@@ -146,7 +181,7 @@ export default function OasisGamePage() {
           <section style={{ display: "grid", gap: 8 }}>
             <h3>Plant Tray</h3>
             <p>
-              Draw pile: <strong>{gameState.deck.length}</strong>
+              Draw pile: <strong>{gameState.deckCount}</strong>
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
               {Array.from({ length: 3 }, (_, slotIdx) => {
@@ -180,7 +215,7 @@ export default function OasisGamePage() {
                   style={{ border: "1px solid #ddd", borderRadius: 6, padding: 10, display: "grid", gap: 8 }}
                 >
                   <header style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <strong>{player?.name ?? playerId}</strong>
+                    <strong>{player?.identity.name ?? playerId}</strong>
                     {currentUid === playerId ? (
                       <span
                         style={{
@@ -198,6 +233,10 @@ export default function OasisGamePage() {
                   </header>
 
                   <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Card container</div>
+                  <p style={{ margin: 0, fontSize: 13 }}>
+                    Hand: <strong>{player?.handCount ?? 0}</strong>
+                    {playerId === currentUid && player?.hand ? ` (${player.hand.map((card) => card.name).join(", ") || "empty"})` : ""}
+                  </p>
 
                   <div className="activation-row-grid">
                     {ACTIVATION_ROW_IDS.map((rowId) => {
