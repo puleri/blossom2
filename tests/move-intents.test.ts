@@ -12,9 +12,16 @@ const game = createGame(
 );
 
 describe("applyMoveIntent", () => {
-  it("initializes game with a 3-card tray and remaining draw pile", () => {
+  it("deals an opening hand to each player", () => {
+    expect(game.handsByPlayerId.p1.length).toBeGreaterThan(0);
+    expect(game.handsByPlayerId.p2.length).toBe(game.handsByPlayerId.p1.length);
+  });
+
+  it("initializes game with tray + deck counts after opening deal", () => {
+    const dealtCards = Object.values(game.handsByPlayerId).reduce((count, hand) => count + hand.length, 0);
+
     expect(game.tray).toHaveLength(3);
-    expect(game.deck).toHaveLength(5);
+    expect(game.deck).toHaveLength(8 - dealtCards - game.tray.length);
   });
 
   it("returns NOT_YOUR_TURN when actor is not active player", () => {
