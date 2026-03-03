@@ -36,11 +36,25 @@ A Next.js + Firestore live prototype for a **Wingspan-style reskin** using the e
    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
    NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
    ```
-3. Start dev server:
+3. In Firebase console, enable:
+   - **Authentication → Sign-in method → Anonymous**
+   - **Firestore Database** (start in test mode for local prototyping)
+4. Add temporary Firestore rules for rooms during prototyping:
+   ```text
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /rooms/{roomId} {
+         allow read, write: if request.auth != null;
+       }
+     }
+   }
+   ```
+5. Start dev server:
    ```bash
    npm run dev
    ```
-4. Open `http://localhost:3000` and create a demo match.
+6. Open `http://localhost:3000` and create or join a room.
 
 ## Firestore data model
 - Collection: `games`
@@ -52,3 +66,8 @@ A Next.js + Firestore live prototype for a **Wingspan-style reskin** using the e
 - Add setup/endgame/scoring breakdown screens
 - Add multiplayer identity/auth and room joining
 - Add deterministic shuffling + seed support
+
+## Firebase room flow
+- `Create Room` signs the user in anonymously and creates/updates `rooms/{roomId}` with the current user as a member.
+- `Join Room` signs the user in anonymously, verifies the room exists, and adds the user to `members`.
+- Room page subscribes with `onSnapshot` to show current connected member count.
