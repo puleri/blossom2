@@ -1,5 +1,5 @@
 import { deterministicShuffle } from "./shuffle";
-import type { Card, GameState, PlayerIdentity } from "../types";
+import type { Card, PlayerIdentity, TurnGameState } from "../types";
 
 const STARTING_DECK: Card[] = [
   { id: "card-1", name: "Sprout" },
@@ -12,7 +12,7 @@ const STARTING_DECK: Card[] = [
   { id: "card-8", name: "Birch" },
 ];
 
-export function createGame(gameId: string, players: PlayerIdentity[], seed: number): GameState {
+export function createGame(gameId: string, players: PlayerIdentity[], seed: number): TurnGameState {
   if (players.length < 2) {
     throw new Error("At least two players are required to create a game");
   }
@@ -32,7 +32,7 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
   };
 }
 
-export function getNextPlayerId(game: GameState): string {
+export function getNextPlayerId(game: TurnGameState): string {
   const currentIndex = game.playerOrder.indexOf(game.currentPlayerId);
 
   if (currentIndex === -1) {
@@ -42,7 +42,7 @@ export function getNextPlayerId(game: GameState): string {
   return game.playerOrder[(currentIndex + 1) % game.playerOrder.length];
 }
 
-export function endTurn(game: GameState): GameState {
+export function endTurn(game: TurnGameState): TurnGameState {
   return {
     ...game,
     turn: game.turn + 1,

@@ -4,11 +4,11 @@ A Next.js + Firestore live prototype for a **Wingspan-style reskin** using the e
 
 ## Reskin concept (v0)
 - **Theme:** Bioluminescent fungal ecosystems ("MycoWings")
-- **Equivalent lanes:**
-  - Understory → **Cavern** (Root action row)
-  - Oasis Edge → **Grove** (To the Sun action row)
-  - Meadow → **Glade** (Pollinate action row)
-  - Canopy → **Canopy** (placement row)
+- **Canonical lane names:**
+  - **Understory** (Root action row)
+  - **Oasis Edge** (To the Sun action row)
+  - **Meadow** (Pollinate action row)
+  - **Canopy** (placement row)
 - **Resources:** dew, spores, nectar, humus
 - **Growth:** sunlight tokens and maturity triggers
 

@@ -8,7 +8,10 @@ export type Card = {
   name: string;
 };
 
-export type GameState = {
+export type ActionType = "grow" | "root" | "toTheSun" | "pollinate";
+
+
+export type TurnGameState = {
   gameId: string;
   seed: number;
   createdAt: string;
@@ -17,7 +20,7 @@ export type GameState = {
   currentPlayerId: string;
   turn: number;
   deck: Card[];
-export type ActionType = "grow" | "root" | "toTheSun" | "pollinate";
+};
 
 export interface PlayerScoreBreakdown {
   playerId: string;
@@ -58,8 +61,9 @@ export interface EndgameResult {
   isFinished: boolean;
   reason?: "deckExhausted" | "turnLimitReached";
 }
+
 export type Resource = "dew" | "spores" | "nectar" | "humus";
-export type Biome = "cavern" | "grove" | "glade" | "canopy";
+export type Biome = "understory" | "oasisEdge" | "meadow" | "canopy";
 export type Trigger = "onPlay" | "onMature" | "onActivate";
 export type ActivateAction = "root" | "toTheSun" | "pollinate";
 
@@ -75,7 +79,7 @@ export type Power = {
   effects: Effect[];
 };
 
-export type PlantCard = {
+export type PlantDefinition = {
   id: string;
   name: string;
   biome: Biome;
@@ -85,26 +89,26 @@ export type PlantCard = {
   powers: Power[];
 };
 
-export type TableauCard = PlantCard & {
+export type TableauCard = PlantDefinition & {
   ownerId: string;
   sunlight: number;
   matureTriggered: boolean;
 };
 
-export type PlayerState = {
+export type EnginePlayerState = {
   id: string;
   name: string;
-  hand: PlantCard[];
+  hand: PlantDefinition[];
   tableau: Record<Biome, TableauCard[]>;
   resources: Record<Resource, number>;
   score: number;
 };
 
-export type GameState = {
+export type EngineGameState = {
   id: string;
   turn: number;
   currentPlayerId: string;
-  players: PlayerState[];
-  deck: PlantCard[];
+  players: EnginePlayerState[];
+  deck: PlantDefinition[];
   log: string[];
 };

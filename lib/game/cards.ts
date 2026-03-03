@@ -1,10 +1,10 @@
-import type { PlantCard } from "../types";
+import type { PlantDefinition } from "../types";
 
-export const starterDeck: PlantCard[] = [
+export const starterDeck: PlantDefinition[] = [
   {
     id: "lichen-archivist",
     name: "Lichen Archivist",
-    biome: "cavern",
+    biome: "understory",
     points: 3,
     sunlightCapacity: 2,
     cost: { dew: 1 },
@@ -13,7 +13,7 @@ export const starterDeck: PlantCard[] = [
   {
     id: "sunspore-spiral",
     name: "Sunspore Spiral",
-    biome: "grove",
+    biome: "oasisEdge",
     points: 4,
     sunlightCapacity: 3,
     cost: { spores: 1, dew: 1 },
@@ -22,7 +22,7 @@ export const starterDeck: PlantCard[] = [
   {
     id: "hollow-petal",
     name: "Hollow Petal Lantern",
-    biome: "glade",
+    biome: "meadow",
     points: 2,
     sunlightCapacity: 1,
     cost: { nectar: 1 },
