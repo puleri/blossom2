@@ -119,6 +119,7 @@ export default function OasisGamePage() {
 
   const gameState = room?.game?.state ?? null;
   const isInGame = room?.status === "in_game" && room.game?.phase === "inProgress" && Boolean(gameState);
+  const currentPlayerState = currentUid && gameState ? gameState.players[currentUid] : null;
   const displayPlayerOrder = useMemo(
     () => getDisplayPlayerOrder(gameState?.playerOrder ?? [], currentUid),
     [currentUid, gameState?.playerOrder],
@@ -152,7 +153,7 @@ export default function OasisGamePage() {
   };
 
   return (
-    <main style={{ display: "grid", gap: 12, maxWidth: 720, margin: "48px auto" }}>
+    <main className={isInGame ? "oasis-game-main with-hand-panel" : "oasis-game-main"}>
       <h1>Oasis Game: {gameId}</h1>
       <p>{status}</p>
 
@@ -232,11 +233,15 @@ export default function OasisGamePage() {
                     ) : null}
                   </header>
 
-                  <div style={{ border: "1px dashed #bbb", borderRadius: 6, padding: 8 }}>Card container</div>
-                  <p style={{ margin: 0, fontSize: 13 }}>
-                    Hand: <strong>{player?.handCount ?? 0}</strong>
-                    {playerId === currentUid && player?.hand ? ` (${player.hand.map((card) => card.name).join(", ") || "empty"})` : ""}
-                  </p>
+                  {playerId === currentUid ? (
+                    <p style={{ margin: 0, fontSize: 13 }}>
+                      Your hand: <strong>{player?.handCount ?? 0} cards</strong> (shown below)
+                    </p>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: 13 }}>
+                      Opponent hand: <strong>{player?.handCount ?? 0} cards</strong> (hidden)
+                    </p>
+                  )}
 
                   <div className="activation-row-grid">
                     {ACTIVATION_ROW_IDS.map((rowId) => {
@@ -254,6 +259,22 @@ export default function OasisGamePage() {
                 </article>
               );
             })}
+          </section>
+
+          <section className="player-hand-panel" aria-label="Your hand">
+            <h3>Your hand</h3>
+            {currentPlayerState?.hand?.length ? (
+              <div className="player-hand-scroll">
+                {currentPlayerState.hand.map((card) => (
+                  <article key={card.id} className="player-hand-card">
+                    <strong>{card.name}</strong>
+                    <p>{card.id}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="player-hand-empty">No cards in your hand.</p>
+            )}
           </section>
         </section>
       ) : null}
