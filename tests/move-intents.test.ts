@@ -69,6 +69,28 @@ describe("applyMoveIntent", () => {
     }
   });
 
+
+  it("supports solo games by keeping turn control with the same player", () => {
+    const soloGame = createGame(
+      "solo-game",
+      [{ id: "solo", name: "Solo" }],
+      9,
+    );
+
+    const result = applyMoveIntent(
+      soloGame,
+      { actionType: "grow", expectedTurn: 1, expectedActionCounter: 0 },
+      "solo",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.currentPlayerId).toBe("solo");
+      expect(result.state.turn).toBe(2);
+    }
+  });
+
   it("refills tray after taking a tray card while deck has cards", () => {
     const beforeTakeDeck = game.deck.length;
     const taken = takeTrayCard(game, 1);
