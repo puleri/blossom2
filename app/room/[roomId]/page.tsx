@@ -37,7 +37,7 @@ type RoomDoc = {
   };
 };
 
-const MIN_PLAYERS_TO_START = 2;
+const MIN_PLAYERS_TO_START = 1;
 const DEFAULT_SEATS = 4;
 
 function displayNameForMember(memberUid: string, currentUid: string | null): string {

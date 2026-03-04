@@ -49,8 +49,8 @@ export function isTurnActionId(actionType: string): actionType is ActionType {
 }
 
 export function createGame(gameId: string, players: PlayerIdentity[], seed: number): TurnGameState {
-  if (players.length < 2) {
-    throw new Error("At least two players are required to create a game");
+  if (players.length < 1) {
+    throw new Error("At least one player is required to create a game");
   }
 
   const createdAt = new Date().toISOString();
