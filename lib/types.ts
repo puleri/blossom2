@@ -66,7 +66,7 @@ export interface EndgameResult {
   reason?: "deckExhausted" | "turnLimitReached";
 }
 
-export type Resource = "dew" | "spores" | "nectar" | "humus";
+export type Resource = "water" | "compost" | "pollinator" | "mineral" | "trellis";
 export const BIOME_IDS = ["understory", "oasisEdge", "meadow", "canopy"] as const;
 export type Biome = (typeof BIOME_IDS)[number];
 

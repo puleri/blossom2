@@ -7,8 +7,8 @@ export const starterDeck: PlantDefinition[] = [
     biome: "understory",
     points: 3,
     sunlightCapacity: 2,
-    cost: { dew: 1 },
-    powers: [{ trigger: "onActivate", action: "root", effects: [{ type: "gainResource", resource: "humus", amount: 1 }] }]
+    cost: { water: 1 },
+    powers: [{ trigger: "onActivate", action: "root", effects: [{ type: "gainResource", resource: "mineral", amount: 1 }] }]
   },
   {
     id: "sunspore-spiral",
@@ -16,7 +16,7 @@ export const starterDeck: PlantDefinition[] = [
     biome: "oasisEdge",
     points: 4,
     sunlightCapacity: 3,
-    cost: { spores: 1, dew: 1 },
+    cost: { compost: 1, water: 1 },
     powers: [{ trigger: "onMature", effects: [{ type: "scorePoints", amount: 2 }] }]
   },
   {
@@ -25,7 +25,7 @@ export const starterDeck: PlantDefinition[] = [
     biome: "meadow",
     points: 2,
     sunlightCapacity: 1,
-    cost: { nectar: 1 },
+    cost: { pollinator: 1 },
     powers: [{ trigger: "onPlay", effects: [{ type: "drawCards", amount: 1 }] }]
   }
 ];

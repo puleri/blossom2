@@ -9,7 +9,7 @@ A Next.js + Firestore live prototype for a **Wingspan-style reskin** using the e
   - **Oasis Edge** → To the Sun activation row
   - **Meadow** → Pollinate activation row
   - **Canopy** → Placement biome
-- **Resources:** dew, spores, nectar, humus
+- **Resources:** water, compost, pollinator, mineral
 - **Growth:** sunlight tokens and maturity triggers
 
 ### Naming conventions
