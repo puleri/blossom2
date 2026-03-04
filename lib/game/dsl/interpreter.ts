@@ -1,7 +1,7 @@
-import type { Effect, GameState } from "../types";
+import type { Condition, Effect, PowerResolutionState } from "../../types";
 
 export type ExecutionContext = {
-  state: GameState;
+  state: PowerResolutionState;
   conditionValues?: Record<string, unknown>;
   chooseOption?: (labels: string[]) => number;
 };
@@ -13,7 +13,7 @@ export function executeEffects(context: ExecutionContext, effects: Effect[]): vo
 }
 
 function executeEffect(context: ExecutionContext, effect: Effect): void {
-  switch (effect.op) {
+  switch (effect.type) {
     case "gainResource":
       context.state.resources[effect.resource] += effect.amount;
       return;
@@ -28,26 +28,35 @@ function executeEffect(context: ExecutionContext, effect: Effect): void {
     case "gainSunlight":
       context.state.sunlight += effect.amount;
       return;
-    case "drawCards":
-      drawCards(context.state, effect.count);
+    case "spendSunlight":
+      if (context.state.sunlight < effect.amount) {
+        throw new Error(`Insufficient sunlight: need ${effect.amount}, have ${context.state.sunlight}`);
+      }
+      context.state.sunlight -= effect.amount;
       return;
-    case "tuckCard":
-      tuckCards(context.state, effect.count);
+    case "drawCards":
+      moveCards(context.state.deck, context.state.hand, effect.amount);
+      return;
+    case "tuckCards":
+      moveCards(context.state.hand, context.state.tucked, effect.amount);
+      return;
+    case "discardCards":
+      moveCards(context.state.hand, context.state.discard, effect.amount);
       return;
     case "scorePoints":
       context.state.score += effect.amount;
       return;
     case "if": {
-      const branch = evaluateCondition(context, effect.condition) ? effect.then : (effect.else ?? []);
+      const branch = evaluateCondition(context.conditionValues, effect.condition) ? effect.then : (effect.else ?? []);
       executeEffects(context, branch);
       return;
     }
     case "choice": {
       const labels = effect.options.map((option) => option.label);
-      const chosen = context.chooseOption ? context.chooseOption(labels) : 0;
-      const option = effect.options[chosen];
+      const selectedIndex = context.chooseOption ? context.chooseOption(labels) : 0;
+      const option = effect.options[selectedIndex];
       if (!option) {
-        throw new Error(`Invalid choice index: ${chosen}`);
+        throw new Error(`Invalid choice index: ${selectedIndex}`);
       }
       executeEffects(context, option.effects);
       return;
@@ -55,11 +64,8 @@ function executeEffect(context: ExecutionContext, effect: Effect): void {
   }
 }
 
-function evaluateCondition(
-  context: ExecutionContext,
-  condition: Extract<Effect, { op: "if" }>["condition"],
-): boolean {
-  const left = context.conditionValues?.[condition.left];
+function evaluateCondition(conditionValues: Record<string, unknown> | undefined, condition: Condition): boolean {
+  const left = conditionValues?.[condition.left];
   const right = condition.right;
 
   switch (condition.operator) {
@@ -78,22 +84,12 @@ function evaluateCondition(
   }
 }
 
-function drawCards(state: GameState, count: number): void {
-  for (let i = 0; i < count; i += 1) {
-    const card = state.deck.shift();
+function moveCards(source: string[], destination: string[], amount: number): void {
+  for (let i = 0; i < amount; i += 1) {
+    const card = source.shift();
     if (!card) {
       return;
     }
-    state.hand.push(card);
-  }
-}
-
-function tuckCards(state: GameState, count: number): void {
-  for (let i = 0; i < count; i += 1) {
-    const card = state.hand.shift();
-    if (!card) {
-      return;
-    }
-    state.tucked.push(card);
+    destination.push(card);
   }
 }

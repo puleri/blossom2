@@ -1,9 +1,7 @@
-import schema from "../../../docs/power-dsl.schema.json";
-import type { Effect } from "../types";
+import type { Condition, Effect, Resource } from "../../types";
 
-const resourceTypeEnum =
-  schema.properties.effects.items.properties.resource.enum satisfies readonly string[];
-const resourceTypes = new Set<string>(resourceTypeEnum);
+const RESOURCE_TYPES = new Set<Resource>(["water", "compost", "pollinator", "mineral", "trellis"]);
+const CONDITION_OPERATORS = new Set<Condition["operator"]>(["==", "!=", ">", ">=", "<", "<="]);
 
 export class PowerDslValidationError extends Error {}
 
@@ -21,29 +19,31 @@ function validateEffect(effect: unknown, path: string): void {
     throw new PowerDslValidationError(`${path} must be an object.`);
   }
 
-  const op = (effect as { op?: unknown }).op;
-  if (typeof op !== "string") {
-    throw new PowerDslValidationError(`${path}.op must be a string.`);
+  const type = (effect as { type?: unknown }).type;
+  if (typeof type !== "string") {
+    throw new PowerDslValidationError(`${path}.type must be a string.`);
   }
 
-  switch (op) {
+  switch (type) {
     case "gainResource":
     case "spendResource":
       validateResourceEffect(effect as Record<string, unknown>, path);
       return;
     case "gainSunlight":
+    case "spendSunlight":
+    case "drawCards":
+    case "tuckCards":
+    case "discardCards":
     case "scorePoints":
       validatePositiveInt((effect as { amount?: unknown }).amount, `${path}.amount`);
-      return;
-    case "drawCards":
-    case "tuckCard":
-      validatePositiveInt((effect as { count?: unknown }).count, `${path}.count`);
       return;
     case "if": {
       const ifEffect = effect as { condition?: unknown; then?: unknown; else?: unknown };
       validateCondition(ifEffect.condition, `${path}.condition`);
       validateEffectArray(ifEffect.then, `${path}.then`);
-      if (ifEffect.else !== undefined) validateEffectArray(ifEffect.else, `${path}.else`);
+      if (ifEffect.else !== undefined) {
+        validateEffectArray(ifEffect.else, `${path}.else`);
+      }
       return;
     }
     case "choice": {
@@ -51,41 +51,52 @@ function validateEffect(effect: unknown, path: string): void {
       if (!Array.isArray(options) || options.length < 2) {
         throw new PowerDslValidationError(`${path}.options must contain at least 2 options.`);
       }
-      options.forEach((opt, i) => {
-        const option = opt as { label?: unknown; effects?: unknown };
-        if (typeof option.label !== "string" || option.label.length === 0) {
-          throw new PowerDslValidationError(`${path}.options[${i}].label must be a non-empty string.`);
+
+      options.forEach((option, index) => {
+        const entry = option as { label?: unknown; effects?: unknown };
+        if (typeof entry.label !== "string" || entry.label.length === 0) {
+          throw new PowerDslValidationError(`${path}.options[${index}].label must be a non-empty string.`);
         }
-        validateEffectArray(option.effects, `${path}.options[${i}].effects`);
+        validateEffectArray(entry.effects, `${path}.options[${index}].effects`);
       });
       return;
     }
     default:
-      throw new PowerDslValidationError(`${path}.op '${op}' is not supported by schema.`);
+      throw new PowerDslValidationError(`${path}.type '${type}' is not supported.`);
   }
 }
 
 function validateResourceEffect(effect: Record<string, unknown>, path: string): void {
-  if (!resourceTypes.has(String(effect.resource))) {
-    throw new PowerDslValidationError(`${path}.resource must be one of ${Array.from(resourceTypes).join(", ")}.`);
+  if (!RESOURCE_TYPES.has(effect.resource as Resource)) {
+    throw new PowerDslValidationError(`${path}.resource must be a valid resource type.`);
   }
   validatePositiveInt(effect.amount, `${path}.amount`);
 }
 
 function validateCondition(condition: unknown, path: string): void {
-  const c = condition as { left?: unknown; operator?: unknown; right?: unknown };
-  const operators = new Set(["==", "!=", ">", ">=", "<", "<="]);
-  if (!condition || typeof condition !== "object") throw new PowerDslValidationError(`${path} must be an object.`);
-  if (typeof c.left !== "string") throw new PowerDslValidationError(`${path}.left must be a string.`);
-  if (!operators.has(String(c.operator))) throw new PowerDslValidationError(`${path}.operator is invalid.`);
-  if (!("right" in c)) throw new PowerDslValidationError(`${path}.right is required.`);
+  const c = condition as Condition;
+  if (!condition || typeof condition !== "object") {
+    throw new PowerDslValidationError(`${path} must be an object.`);
+  }
+
+  if (typeof c.left !== "string") {
+    throw new PowerDslValidationError(`${path}.left must be a string.`);
+  }
+
+  if (!CONDITION_OPERATORS.has(c.operator)) {
+    throw new PowerDslValidationError(`${path}.operator is invalid.`);
+  }
+
+  if (!("right" in c)) {
+    throw new PowerDslValidationError(`${path}.right is required.`);
+  }
 }
 
 function validateEffectArray(value: unknown, path: string): void {
   if (!Array.isArray(value) || value.length === 0) {
     throw new PowerDslValidationError(`${path} must be a non-empty effects array.`);
   }
-  value.forEach((effect, i) => validateEffect(effect, `${path}/${i}`));
+  value.forEach((effect, index) => validateEffect(effect, `${path}/${index}`));
 }
 
 function validatePositiveInt(value: unknown, path: string): void {

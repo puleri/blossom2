@@ -1,18 +1,14 @@
 import { validatePowerDsl } from "./dsl/validate";
-import { TRIGGER_TYPES, type CardDefinition } from "./types";
+import type { PlantDefinition, Trigger } from "../types";
 
-const VALID_TRIGGER_TYPES = new Set<string>(TRIGGER_TYPES);
+const VALID_TRIGGER_TYPES = new Set<Trigger>(["onPlay", "onActivate", "onMature"]);
 
-export function validateCardDefinitions(cards: CardDefinition[]): void {
+export function validateCardDefinitions(cards: PlantDefinition[]): void {
   for (const card of cards) {
-    if (!card.powers) {
-      continue;
-    }
-
-    for (const [trigger, effects] of Object.entries(card.powers)) {
-      validatePowerDsl(effects);
-      if (!VALID_TRIGGER_TYPES.has(trigger)) {
-        throw new Error(`Unknown trigger '${trigger}' on card '${card.id}'`);
+    for (const power of card.powers) {
+      validatePowerDsl(power.effects);
+      if (!VALID_TRIGGER_TYPES.has(power.trigger)) {
+        throw new Error(`Unknown trigger '${power.trigger}' on card '${card.id}'`);
       }
     }
   }
