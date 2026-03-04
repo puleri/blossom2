@@ -1,16 +1,7 @@
 import { deterministicShuffle } from "./shuffle";
-import { ACTION_TYPES, type ActionType, type Card, type PlayerIdentity, type TurnGameState } from "../types";
-
-const STARTING_DECK: Card[] = [
-  { id: "card-1", name: "Sprout" },
-  { id: "card-2", name: "Fern" },
-  { id: "card-3", name: "Moss" },
-  { id: "card-4", name: "Oak Sapling" },
-  { id: "card-5", name: "Willow" },
-  { id: "card-6", name: "Lotus" },
-  { id: "card-7", name: "Cedar" },
-  { id: "card-8", name: "Birch" },
-];
+import { EXPANDED_DECK } from "./cards";
+import { aggregateFinalScoring, determineWinnerId } from "./scoring";
+import { ACTION_TYPES, type ActionType, type Card, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
 
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
 const TRAY_SIZE = 3;
@@ -55,7 +46,7 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
 
   const createdAt = new Date().toISOString();
   const playerOrder = players.map((player) => player.id);
-  const shuffledDeck = deterministicShuffle(STARTING_DECK, seed);
+  const shuffledDeck = deterministicShuffle(EXPANDED_DECK, seed);
   const setupHands = dealOpeningHands(shuffledDeck, playerOrder);
   const setupCards = drawToTray(setupHands.deck, []);
 
@@ -110,5 +101,30 @@ export function endTurn(game: TurnGameState): TurnGameState {
     ...game,
     turn: game.turn + 1,
     currentPlayerId: getNextPlayerId(game),
+  };
+}
+
+
+export function applyAction(state: ScoringGameState, _action: ActionType): ScoringGameState {
+  const nextDeckCount = Math.max(0, state.deckCount - 1);
+  const nextTurn = state.currentTurn + 1;
+  const shouldFinish = nextDeckCount === 0 || nextTurn >= state.maxTurns;
+
+  if (!shouldFinish) {
+    return {
+      ...state,
+      deckCount: nextDeckCount,
+      currentTurn: nextTurn,
+    };
+  }
+
+  const scoringBreakdown = aggregateFinalScoring(state);
+  return {
+    ...state,
+    deckCount: nextDeckCount,
+    currentTurn: nextTurn,
+    isFinished: true,
+    scoringBreakdown,
+    winnerId: determineWinnerId(scoringBreakdown),
   };
 }

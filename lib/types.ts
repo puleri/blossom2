@@ -3,14 +3,56 @@ export type PlayerIdentity = {
   name: string;
 };
 
-export type Card = {
-  id: string;
-  name: string;
-};
-
 export const ACTION_TYPES = ["grow", "root", "toTheSun", "pollinate"] as const;
 export type ActionType = (typeof ACTION_TYPES)[number];
 
+export type Resource = "water" | "compost" | "pollinator" | "mineral" | "trellis";
+export const BIOME_IDS = ["understory", "oasisEdge", "meadow", "canopy"] as const;
+export type Biome = (typeof BIOME_IDS)[number];
+
+export const ACTIVATION_ROW_IDS = ["understoryRow", "oasisEdgeRow", "meadowRow"] as const;
+export type ActivationRowId = (typeof ACTIVATION_ROW_IDS)[number];
+
+export type Trigger = "onPlay" | "onMature" | "onActivate";
+export type ActivateAction = "root" | "toTheSun" | "pollinate";
+
+export type ConditionOperator = "==" | "!=" | ">" | ">=" | "<" | "<=";
+
+export type Condition = {
+  left: string;
+  operator: ConditionOperator;
+  right: unknown;
+};
+
+export type Effect =
+  | { type: "gainResource"; resource: Resource; amount: number }
+  | { type: "spendResource"; resource: Resource; amount: number }
+  | { type: "gainSunlight"; amount: number }
+  | { type: "spendSunlight"; amount: number }
+  | { type: "drawCards"; amount: number }
+  | { type: "tuckCards"; amount: number }
+  | { type: "discardCards"; amount: number }
+  | { type: "scorePoints"; amount: number }
+  | { type: "if"; condition: Condition; then: Effect[]; else?: Effect[] }
+  | { type: "choice"; options: Array<{ label: string; effects: Effect[] }> };
+
+export type Power = {
+  trigger: Trigger;
+  action?: ActivateAction;
+  effects: Effect[];
+};
+
+export type PlantDefinition = {
+  id: string;
+  name: string;
+  biome: Biome;
+  points: number;
+  sunlightCapacity: number;
+  cost: Partial<Record<Resource, number>>;
+  powers: Power[];
+};
+
+export type Card = PlantDefinition;
 
 export type TurnGameState = {
   gameId: string;
@@ -55,7 +97,6 @@ export interface GameState {
   currentTurn: number;
   maxTurns: number;
 
-  /** Endgame fields */
   isFinished: boolean;
   winnerId: string | null;
   scoringBreakdown: PlayerScoreBreakdown[];
@@ -65,20 +106,6 @@ export interface EndgameResult {
   isFinished: boolean;
   reason?: "deckExhausted" | "turnLimitReached";
 }
-
-export type Resource = "water" | "compost" | "pollinator" | "mineral" | "trellis";
-export const BIOME_IDS = ["understory", "oasisEdge", "meadow", "canopy"] as const;
-export type Biome = (typeof BIOME_IDS)[number];
-
-export const ACTIVATION_ROW_IDS = [
-  "understoryRow",
-  "oasisEdgeRow",
-  "meadowRow",
-] as const;
-export type ActivationRowId = (typeof ACTIVATION_ROW_IDS)[number];
-
-export type Trigger = "onPlay" | "onMature" | "onActivate";
-export type ActivateAction = "root" | "toTheSun" | "pollinate";
 
 export type ActivationOrder = "leftToRight" | "rightToLeft";
 
@@ -117,26 +144,14 @@ export const BIOME_METADATA: Record<Biome, { displayName: string; rowId: Activat
   meadow: { displayName: "Meadow", rowId: "meadowRow" },
 };
 
-export type Effect =
-  | { type: "gainResource"; resource: Resource; amount: number }
-  | { type: "gainSunlight"; amount: number }
-  | { type: "drawCards"; amount: number }
-  | { type: "scorePoints"; amount: number };
-
-export type Power = {
-  trigger: Trigger;
-  action?: ActivateAction;
-  effects: Effect[];
-};
-
-export type PlantDefinition = {
-  id: string;
-  name: string;
-  biome: Biome;
-  points: number;
-  sunlightCapacity: number;
-  cost: Partial<Record<Resource, number>>;
-  powers: Power[];
+export type PowerResolutionState = {
+  resources: Record<Resource, number>;
+  sunlight: number;
+  score: number;
+  hand: string[];
+  deck: string[];
+  tucked: string[];
+  discard: string[];
 };
 
 export type TableauCard = PlantDefinition & {

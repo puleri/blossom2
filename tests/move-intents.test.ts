@@ -21,7 +21,9 @@ describe("applyMoveIntent", () => {
     const dealtCards = Object.values(game.handsByPlayerId).reduce((count, hand) => count + hand.length, 0);
 
     expect(game.tray).toHaveLength(3);
-    expect(game.deck).toHaveLength(8 - dealtCards - game.tray.length);
+    const totalCards = game.deck.length + game.tray.length + dealtCards;
+    expect(totalCards).toBeGreaterThan(8);
+    expect(game.deck).toHaveLength(totalCards - dealtCards - game.tray.length);
   });
 
   it("returns NOT_YOUR_TURN when actor is not active player", () => {

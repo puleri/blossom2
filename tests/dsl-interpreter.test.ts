@@ -1,112 +1,88 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { executeEffects } from "../lib/game/dsl/interpreter";
-import { applyEffects } from "../lib/game/rules";
 import { validateCardDefinitions } from "../lib/game/setup";
 import { validatePowerDsl } from "../lib/game/dsl/validate";
-import type { Effect, GameState } from "../lib/game/types";
+import type { Effect, PlantDefinition, PowerResolutionState } from "../lib/types";
 
-function makeState(): GameState {
+function makeState(): PowerResolutionState {
   return {
-    resources: { water: 0, nutrients: 0, seeds: 0, compost: 0 },
-    sunlight: 0,
+    resources: { water: 0, compost: 0, pollinator: 0, mineral: 0, trellis: 0 },
+    sunlight: 1,
     score: 0,
     hand: ["H1", "H2"],
     deck: ["D1", "D2", "D3"],
-    tucked: []
+    tucked: [],
+    discard: [],
   };
 }
 
 describe("opcode execution", () => {
-  test("supports gainResource", () => {
+  it("supports gain/spend resource and sunlight", () => {
     const state = makeState();
-    executeEffects({ state }, [{ op: "gainResource", resource: "water", amount: 2 }]);
-    expect(state.resources.water).toBe(2);
+    executeEffects({ state }, [
+      { type: "gainResource", resource: "water", amount: 2 },
+      { type: "spendResource", resource: "water", amount: 1 },
+      { type: "gainSunlight", amount: 3 },
+      { type: "spendSunlight", amount: 2 },
+    ]);
+
+    expect(state.resources.water).toBe(1);
+    expect(state.sunlight).toBe(2);
   });
 
-  test("supports spendResource", () => {
+  it("supports draw/tuck/discard card flows", () => {
     const state = makeState();
-    state.resources.seeds = 3;
-    executeEffects({ state }, [{ op: "spendResource", resource: "seeds", amount: 2 }]);
-    expect(state.resources.seeds).toBe(1);
+    executeEffects({ state }, [
+      { type: "drawCards", amount: 2 },
+      { type: "tuckCards", amount: 1 },
+      { type: "discardCards", amount: 1 },
+    ]);
+
+    expect(state.hand).toEqual(["D1", "D2"]);
+    expect(state.tucked).toEqual(["H1"]);
+    expect(state.discard).toEqual(["H2"]);
   });
 
-  test("supports gainSunlight", () => {
+  it("supports score, if, and choice", () => {
     const state = makeState();
-    executeEffects({ state }, [{ op: "gainSunlight", amount: 3 }]);
-    expect(state.sunlight).toBe(3);
-  });
+    const effects: Effect[] = [
+      {
+        type: "if",
+        condition: { left: "sunlight", operator: ">=", right: 1 },
+        then: [{ type: "scorePoints", amount: 2 }],
+        else: [{ type: "scorePoints", amount: 1 }],
+      },
+      {
+        type: "choice",
+        options: [
+          { label: "gain water", effects: [{ type: "gainResource", resource: "water", amount: 1 }] },
+          { label: "gain pollinator", effects: [{ type: "gainResource", resource: "pollinator", amount: 2 }] },
+        ],
+      },
+    ];
 
-  test("supports drawCards", () => {
-    const state = makeState();
-    executeEffects({ state }, [{ op: "drawCards", count: 2 }]);
-    expect(state.hand).toEqual(["H1", "H2", "D1", "D2"]);
-  });
+    executeEffects({ state, conditionValues: { sunlight: 3 }, chooseOption: () => 1 }, effects);
 
-  test("supports tuckCard", () => {
-    const state = makeState();
-    executeEffects({ state }, [{ op: "tuckCard", count: 2 }]);
-    expect(state.hand).toEqual([]);
-    expect(state.tucked).toEqual(["H1", "H2"]);
-  });
-
-  test("supports scorePoints", () => {
-    const state = makeState();
-    executeEffects({ state }, [{ op: "scorePoints", amount: 4 }]);
-    expect(state.score).toBe(4);
-  });
-
-  test("supports if", () => {
-    const state = makeState();
-    const effects: Effect[] = [{
-      op: "if",
-      condition: { left: "sunlight", operator: ">=", right: 2 },
-      then: [{ op: "scorePoints", amount: 2 }],
-      else: [{ op: "scorePoints", amount: 1 }]
-    }];
-    executeEffects({ state, conditionValues: { sunlight: 3 } }, effects);
     expect(state.score).toBe(2);
-  });
-
-  test("supports choice", () => {
-    const state = makeState();
-    const effects: Effect[] = [{
-      op: "choice",
-      options: [
-        { label: "gain water", effects: [{ op: "gainResource", resource: "water", amount: 1 }] },
-        { label: "gain seeds", effects: [{ op: "gainResource", resource: "seeds", amount: 2 }] }
-      ]
-    }];
-    executeEffects({ state, chooseOption: () => 1 }, effects);
-    expect(state.resources.water).toBe(0);
-    expect(state.resources.seeds).toBe(2);
+    expect(state.resources.pollinator).toBe(2);
   });
 });
 
-describe("trigger effects and setup validation", () => {
-  test("runs onPlay, onActivate, onMature through applyEffects", () => {
-    const state = makeState();
-    applyEffects(state, [{ op: "scorePoints", amount: 1 }]);
-    applyEffects(state, [{ op: "gainSunlight", amount: 1 }]);
-    applyEffects(state, [{ op: "gainResource", resource: "compost", amount: 1 }]);
-
-    expect(state.score).toBe(1);
-    expect(state.sunlight).toBe(1);
-    expect(state.resources.compost).toBe(1);
-  });
-
-  test("validates powers at setup time", () => {
-    expect(() => validateCardDefinitions([
+describe("setup validation", () => {
+  it("validates card definitions and effects", () => {
+    const cards: PlantDefinition[] = [
       {
         id: "c1",
         name: "Sapling",
-        powers: {
-          onPlay: [{ op: "gainResource", resource: "water", amount: 1 }],
-          onActivate: [{ op: "scorePoints", amount: 1 }],
-          onMature: [{ op: "gainSunlight", amount: 1 }]
-        }
-      }
-    ])).not.toThrow();
+        biome: "understory",
+        points: 1,
+        sunlightCapacity: 1,
+        cost: { water: 1 },
+        powers: [{ trigger: "onPlay", effects: [{ type: "gainResource", resource: "water", amount: 1 }] }],
+      },
+    ];
 
-    expect(() => validatePowerDsl([{ op: "gainResource", resource: "gold", amount: 1 }])).toThrow();
+    expect(() => validateCardDefinitions(cards)).not.toThrow();
+    expect(() => validatePowerDsl([{ type: "gainResource", resource: "gold", amount: 1 }])).toThrow();
   });
 });

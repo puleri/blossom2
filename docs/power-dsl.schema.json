@@ -12,7 +12,20 @@
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "enum": ["gainResource", "gainSunlight", "drawCards", "scorePoints"] },
+          "type": {
+            "enum": [
+              "gainResource",
+              "spendResource",
+              "gainSunlight",
+              "spendSunlight",
+              "drawCards",
+              "tuckCards",
+              "discardCards",
+              "scorePoints",
+              "if",
+              "choice"
+            ]
+          },
           "resource": { "enum": ["water", "compost", "pollinator", "mineral", "trellis"] },
           "amount": { "type": "integer", "minimum": 1 }
         }
