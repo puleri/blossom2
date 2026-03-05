@@ -27,23 +27,33 @@ export default function HomePage() {
   };
 
   return (
-    <main style={{ display: "grid", gap: 12, maxWidth: 420, margin: "48px auto" }}>
-      <h1>Plant Biomes</h1>
-      <label htmlFor="room-id">Room ID</label>
-      <input
-        id="room-id"
-        placeholder="enter-room-id"
-        value={roomIdInput}
-        onChange={(event) => setRoomIdInput(event.target.value)}
-      />
+    <main>
+      <div style={{ width: "100vw", marginInline: "calc(50% - 50vw)" }}>
+        <img
+          src="/images/blossom-hero.png"
+          alt="Plant Biomes hero"
+          style={{ display: "block", width: "100%", height: "auto" }}
+        />
+      </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" onClick={createRoom}>
-          Create Room
-        </button>
-        <button type="button" onClick={joinRoom} disabled={!normalizedRoomId}>
-          Join Room
-        </button>
+      <div style={{ display: "grid", gap: 12, maxWidth: 420, margin: "48px auto" }}>
+        <h1>Plant Biomes</h1>
+        <label htmlFor="room-id">Room ID</label>
+        <input
+          id="room-id"
+          placeholder="enter-room-id"
+          value={roomIdInput}
+          onChange={(event) => setRoomIdInput(event.target.value)}
+        />
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={createRoom}>
+            Create Room
+          </button>
+          <button type="button" onClick={joinRoom} disabled={!normalizedRoomId}>
+            Join Room
+          </button>
+        </div>
       </div>
     </main>
   );
