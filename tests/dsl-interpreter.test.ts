@@ -6,7 +6,7 @@ import type { Effect, PlantDefinition, PowerResolutionState } from "../lib/types
 
 function makeState(): PowerResolutionState {
   return {
-    resources: { water: 0, compost: 0, pollinator: 0, mineral: 0, trellis: 0 },
+    resources: { water: 0, compost: 0, pollinator: 0, mineral: 0, trellis: 0, wild: 0 },
     sunlight: 1,
     score: 0,
     hand: ["H1", "H2"],
@@ -73,11 +73,11 @@ describe("setup validation", () => {
     const cards: PlantDefinition[] = [
       {
         id: "c1",
+        key: "sapling",
         name: "Sapling",
-        biome: "understory",
-        points: 1,
-        sunlightCapacity: 1,
         cost: { water: 1 },
+        maxSunTokens: 1,
+        biomes: ["understory"],
         powers: [{ trigger: "onPlay", effects: [{ type: "gainResource", resource: "water", amount: 1 }] }],
       },
     ];
