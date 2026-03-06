@@ -60,6 +60,7 @@ export type TurnGameState = {
   createdAt: string;
   players: Record<string, PlayerIdentity>;
   handsByPlayerId: Record<string, Card[]>;
+  tableauByPlayerId: Record<string, Record<ActivationRowId, Card[]>>;
   playerOrder: string[];
   currentPlayerId: string;
   turn: number;

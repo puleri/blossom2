@@ -56,6 +56,16 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
     createdAt,
     players: Object.fromEntries(players.map((player) => [player.id, player])),
     handsByPlayerId: setupHands.handsByPlayerId,
+    tableauByPlayerId: Object.fromEntries(
+      playerOrder.map((playerId) => [
+        playerId,
+        {
+          understoryRow: [],
+          oasisEdgeRow: [],
+          meadowRow: [],
+        },
+      ]),
+    ),
     playerOrder,
     currentPlayerId: playerOrder[0],
     turn: 1,

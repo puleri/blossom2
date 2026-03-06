@@ -24,6 +24,9 @@ describe("applyMoveIntent", () => {
     const totalCards = game.deck.length + game.tray.length + dealtCards;
     expect(totalCards).toBeGreaterThan(8);
     expect(game.deck).toHaveLength(totalCards - dealtCards - game.tray.length);
+    expect(game.tableauByPlayerId.p1.understoryRow).toEqual([]);
+    expect(game.tableauByPlayerId.p1.oasisEdgeRow).toEqual([]);
+    expect(game.tableauByPlayerId.p1.meadowRow).toEqual([]);
   });
 
   it("returns NOT_YOUR_TURN when actor is not active player", () => {
@@ -54,6 +57,46 @@ describe("applyMoveIntent", () => {
     }
   });
 
+
+  it("requires grow card + row selection for grow intents", () => {
+    const result = applyMoveIntent(
+      game,
+      { actionType: "grow", expectedTurn: 1, expectedActionCounter: 0 },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("INVALID_ACTION");
+    }
+  });
+
+  it("moves selected hand card into the selected row on grow", () => {
+    const selectedCard = game.handsByPlayerId.p1[0];
+
+    const result = applyMoveIntent(
+      game,
+      {
+        actionType: "grow",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+        growSelection: {
+          cardId: selectedCard.id,
+          rowId: "meadowRow",
+        },
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.handsByPlayerId.p1.some((card) => card.id === selectedCard.id)).toBe(false);
+      expect(result.state.tableauByPlayerId.p1.meadowRow.some((card) => card.id === selectedCard.id)).toBe(true);
+    }
+  });
+
   it("advances turn and action counter on valid intent", () => {
     const result = applyMoveIntent(
       game,
@@ -81,7 +124,7 @@ describe("applyMoveIntent", () => {
 
     const result = applyMoveIntent(
       soloGame,
-      { actionType: "grow", expectedTurn: 1, expectedActionCounter: 0 },
+      { actionType: "pollinate", expectedTurn: 1, expectedActionCounter: 0 },
       "solo",
       0,
     );
