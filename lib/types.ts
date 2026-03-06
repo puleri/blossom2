@@ -42,14 +42,48 @@ export type Power = {
   effects: Effect[];
 };
 
+export type RollDieTuckActivation = {
+  type: "rollDieTuck";
+  effect: {
+    die: "d6";
+    successIfLessThan: number;
+    onSuccess: {
+      tuckCards: number;
+    };
+  };
+};
+
+export type GroupBenefitActivation = {
+  type: "groupBenefit";
+  effect: {
+    allPlayersGain: {
+      resource: Resource;
+      amount: number;
+    };
+    youGain: {
+      resource: Resource;
+      amount: number;
+    };
+  };
+};
+
+export type ActivationAbility = RollDieTuckActivation | GroupBenefitActivation;
+
 export type PlantDefinition = {
   id: string;
+  key: string;
   name: string;
-  biome: Biome;
-  points: number;
-  sunlightCapacity: number;
   cost: Partial<Record<Resource, number>>;
-  powers: Power[];
+  maxSunTokens: number;
+  biomes: Biome[];
+  onPlay?: Power;
+  onMature?: Power;
+  onActivate?: ActivationAbility;
+  // Legacy fields kept for compatibility with existing setup/DSL tests.
+  biome?: Biome;
+  points?: number;
+  sunlightCapacity?: number;
+  powers?: Power[];
 };
 
 export type Card = PlantDefinition;
