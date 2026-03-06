@@ -6,7 +6,7 @@ export type PlayerIdentity = {
 export const ACTION_TYPES = ["grow", "root", "toTheSun", "pollinate"] as const;
 export type ActionType = (typeof ACTION_TYPES)[number];
 
-export type Resource = "water" | "compost" | "pollinator" | "mineral" | "trellis";
+export type Resource = "water" | "compost" | "pollinator" | "mineral" | "trellis" | "wild";
 export const BIOME_IDS = ["understory", "oasisEdge", "meadow", "canopy"] as const;
 export type Biome = (typeof BIOME_IDS)[number];
 
