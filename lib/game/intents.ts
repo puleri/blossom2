@@ -1,10 +1,14 @@
 import { endTurn, isTurnActionId } from "./rules";
-import type { ActionType, TurnGameState } from "../types";
+import type { ActivationRowId, ActionType, TurnGameState } from "../types";
 
 export type MoveIntent = {
   actionType: ActionType;
   expectedTurn: number;
   expectedActionCounter: number;
+  growSelection?: {
+    cardId: string;
+    rowId: ActivationRowId;
+  };
 };
 
 export type MoveErrorCode = "NOT_YOUR_TURN" | "INVALID_ACTION" | "STALE_STATE";
@@ -46,6 +50,63 @@ export function applyMoveIntent(
         code: "STALE_STATE",
         message: "The game has advanced. Refresh and try again.",
       },
+    };
+  }
+
+
+  if (intent.actionType === "grow") {
+    if (!intent.growSelection) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "Grow requires selecting a card and row.",
+        },
+      };
+    }
+
+    const hand = state.handsByPlayerId[actorUid] ?? [];
+    const selectedCard = hand.find((card) => card.id === intent.growSelection?.cardId);
+    if (!selectedCard) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "Selected grow card is no longer in your hand.",
+        },
+      };
+    }
+
+    const nextHand = hand.filter((card) => card.id !== intent.growSelection?.cardId);
+    const currentRow = state.tableauByPlayerId[actorUid]?.[intent.growSelection.rowId] ?? [];
+    const nextTableauByPlayerId = {
+      ...state.tableauByPlayerId,
+      [actorUid]: {
+        ...(state.tableauByPlayerId[actorUid] ?? {
+          understoryRow: [],
+          oasisEdgeRow: [],
+          meadowRow: [],
+        }),
+        [intent.growSelection.rowId]: [...currentRow, selectedCard],
+      },
+    };
+
+    const nextState = {
+      ...endTurn({
+        ...state,
+        handsByPlayerId: {
+          ...state.handsByPlayerId,
+          [actorUid]: nextHand,
+        },
+        tableauByPlayerId: nextTableauByPlayerId,
+      }),
+      lastAction: intent.actionType,
+    };
+
+    return {
+      ok: true,
+      state: nextState,
+      actionCounter: currentActionCounter + 1,
     };
   }
 

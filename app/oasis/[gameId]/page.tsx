@@ -11,6 +11,7 @@ import {
   ACTIVATION_ROW_IDS,
   ACTIVATION_ROW_METADATA,
   type ActionType,
+  type ActivationRowId,
 } from "../../../lib/types";
 import { getDisplayPlayerOrder } from "./player-order";
 
@@ -40,6 +41,8 @@ export default function OasisGamePage() {
   const [status, setStatus] = useState("Connecting to game...");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [growCardId, setGrowCardId] = useState<string>("");
+  const [growRowId, setGrowRowId] = useState<ActivationRowId>("understoryRow");
 
   useEffect(() => {
     if (!gameId) {
@@ -130,13 +133,29 @@ export default function OasisGamePage() {
       return;
     }
 
+    if (actionType === "grow") {
+      if (!growCardId) {
+        setError("Select a card from your hand to plant.");
+        return;
+      }
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
+      const growSelection =
+        actionType === "grow"
+          ? {
+              cardId: growCardId,
+              rowId: growRowId,
+            }
+          : undefined;
+
       const result = await submitMoveIntent(gameId, {
         actionType,
         expectedTurn: gameState.turn,
         expectedActionCounter: room.game.actionCounter,
+        growSelection,
       });
 
       if (!result.ok) {
@@ -145,6 +164,9 @@ export default function OasisGamePage() {
       }
 
       setStatus(`Submitted ${actionType}.`);
+      if (actionType === "grow") {
+        setGrowCardId("");
+      }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to submit action.");
     } finally {
@@ -246,10 +268,14 @@ export default function OasisGamePage() {
                   <div className="activation-row-grid">
                     {ACTIVATION_ROW_IDS.map((rowId) => {
                       const rowMetadata = ACTIVATION_ROW_METADATA[rowId];
+                      const plantedCards = player?.tableauByRow?.[rowId] ?? [];
                       return (
                         <div key={rowId} className="activation-row-card">
                           <p className="activation-row-title">{rowMetadata.displayName}</p>
                           <p className="activation-row-hint">Action hint: {rowMetadata.actionType}</p>
+                          <p style={{ margin: 0, fontSize: 12, color: "#444" }}>
+                            Planted: <strong>{plantedCards.length}</strong>
+                          </p>
                         </div>
                       );
                     })}
@@ -282,6 +308,40 @@ export default function OasisGamePage() {
       {isInGame && gameState ? (
         <section style={{ display: "grid", gap: 10 }}>
           <h2>Actions</h2>
+          <section style={{ display: "grid", gap: 8, border: "1px solid #ddd", borderRadius: 8, padding: 10 }}>
+            <h3 style={{ margin: 0 }}>Grow setup</h3>
+            <label style={{ display: "grid", gap: 4 }}>
+              <span>Select hand card to plant</span>
+              <select
+                value={growCardId}
+                onChange={(event) => setGrowCardId(event.target.value)}
+                disabled={isSubmitting || !currentPlayerState?.hand?.length}
+              >
+                <option value="">Choose a card</option>
+                {(currentPlayerState?.hand ?? []).map((card) => (
+                  <option key={card.id} value={card.id}>
+                    {card.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={{ display: "grid", gap: 4 }}>
+              <span>Select row to plant in</span>
+              <select
+                value={growRowId}
+                onChange={(event) => setGrowRowId(event.target.value as ActivationRowId)}
+                disabled={isSubmitting}
+              >
+                {ACTIVATION_ROW_IDS.map((rowId) => (
+                  <option key={rowId} value={rowId}>
+                    {ACTIVATION_ROW_METADATA[rowId].displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </section>
+
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {ACTION_TYPES.map((actionType) => (
               <button
