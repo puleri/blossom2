@@ -67,13 +67,32 @@ export type GroupBenefitActivation = {
   };
 };
 
-export type ActivationAbility = RollDieTuckActivation | GroupBenefitActivation;
+export type DrawCardsActivation = {
+  type: "drawCards";
+  effect: {
+    draw: number;
+  };
+};
+
+export type GainSunActivation = {
+  type: "gainSun";
+  effect: {
+    amount: number;
+  };
+};
+
+export type ActivationAbility =
+  | RollDieTuckActivation
+  | GroupBenefitActivation
+  | DrawCardsActivation
+  | GainSunActivation;
 
 export type PlantDefinition = {
   id: string;
   key: string;
   name: string;
   cost: Partial<Record<Resource, number>>;
+  points: number;
   maxSunTokens: number;
   biomes: Biome[];
   onPlay?: Power;
@@ -81,7 +100,6 @@ export type PlantDefinition = {
   onActivate?: ActivationAbility;
   // Legacy fields kept for compatibility with existing setup/DSL tests.
   biome?: Biome;
-  points?: number;
   sunlightCapacity?: number;
   powers?: Power[];
 };

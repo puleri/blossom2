@@ -11,6 +11,7 @@ const BASE_CARDS: Array<Omit<PlantDefinition, "id">> = [
   {
     key: "venus-flytrap",
     name: "Venus Flytrap",
+    points: 4,
     cost: {
       water: 1,
       mineral: 1,
@@ -31,6 +32,7 @@ const BASE_CARDS: Array<Omit<PlantDefinition, "id">> = [
   {
     key: "western-hemlock",
     name: "Western Hemlock",
+    points: 6,
     cost: {
       water: 2,
       wild: 1,
@@ -54,6 +56,7 @@ const BASE_CARDS: Array<Omit<PlantDefinition, "id">> = [
   {
     key: "prairie-clover",
     name: "Prairie Clover",
+    points: 2,
     cost: {
       pollinator: 1,
     },
@@ -74,8 +77,43 @@ const BASE_CARDS: Array<Omit<PlantDefinition, "id">> = [
     biomes: ["meadow"],
   },
   {
+    key: "redwood-sorrel",
+    name: "Redwood Sorrel",
+    points: 3,
+    cost: {
+      water: 1,
+      compost: 1,
+    },
+    onActivate: {
+      type: "drawCards",
+      effect: {
+        draw: 1,
+      },
+    },
+    maxSunTokens: 5,
+    biomes: ["understory"],
+  },
+  {
+    key: "alpine-lupine",
+    name: "Alpine Lupine",
+    points: 4,
+    cost: {
+      pollinator: 1,
+      water: 1,
+    },
+    onActivate: {
+      type: "gainSun",
+      effect: {
+        amount: 2,
+      },
+    },
+    maxSunTokens: 6,
+    biomes: ["meadow", "oasisEdge"],
+  },
+  {
     key: "sword-fern",
     name: "Sword Fern",
+    points: 3,
     cost: {
       water: 1,
       compost: 1,

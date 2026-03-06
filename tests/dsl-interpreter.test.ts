@@ -75,6 +75,7 @@ describe("setup validation", () => {
         id: "c1",
         key: "sapling",
         name: "Sapling",
+        points: 1,
         cost: { water: 1 },
         maxSunTokens: 1,
         biomes: ["understory"],
