@@ -44,6 +44,42 @@ pre { white-space: pre-wrap; }
   padding-bottom: 220px;
 }
 
+.food-cache-panel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  gap: 8px;
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 30;
+}
+
+.food-cache-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.food-cache-tokens {
+  display: flex;
+  gap: 6px;
+}
+
+.food-cache-token {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #1f2937;
+  font-weight: 700;
+}
+
 .player-hand-panel {
   position: fixed;
   left: 50%;

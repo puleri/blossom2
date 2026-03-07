@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EXPANDED_DECK } from "../lib/game/cards";
-import { createGame } from "../lib/game/rules";
+import { createGame, endTurn } from "../lib/game/rules";
 
 describe("createGame deck setup", () => {
   it("shuffles deterministically for the same seed", () => {
@@ -33,5 +33,31 @@ describe("createGame deck setup", () => {
     expect(dealt).toBe(players.length * 2);
     expect(game.tray).toHaveLength(3);
     expect(total).toBe(EXPANDED_DECK.length);
+  });
+
+  it("rolls five d5 food tokens during setup", () => {
+    const players = [
+      { id: "p1", name: "P1" },
+      { id: "p2", name: "P2" },
+    ];
+
+    const game = createGame("g1", players, 42);
+
+    expect(game.foodCache).toHaveLength(5);
+    expect(game.foodCache.every((token) => token >= 1 && token <= 5)).toBe(true);
+  });
+
+  it("automatically rerolls food when the cache is empty", () => {
+    const players = [
+      { id: "p1", name: "P1" },
+      { id: "p2", name: "P2" },
+    ];
+    const game = createGame("g1", players, 42);
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const next = endTurn({ ...game, foodCache: [] });
+
+    expect(next.foodCache).toEqual([1, 1, 1, 1, 1]);
+    randomSpy.mockRestore();
   });
 });

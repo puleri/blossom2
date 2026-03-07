@@ -6,6 +6,16 @@ import { ACTION_TYPES, BIOME_METADATA, type ActionType, type ActivationRowId, ty
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
 const TRAY_SIZE = 3;
 const OPENING_HAND_SIZE = 2;
+const FOOD_TOKEN_COUNT = 5;
+const FOOD_DIE_SIDES = 5;
+
+function rollFoodToken(): number {
+  return Math.floor(Math.random() * FOOD_DIE_SIDES) + 1;
+}
+
+function rollFoodCache(count = FOOD_TOKEN_COUNT): number[] {
+  return Array.from({ length: count }, () => rollFoodToken());
+}
 
 function createEmptyTableau(): Record<ActivationRowId, Card[]> {
   return {
@@ -75,6 +85,7 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
     turn: 1,
     deck: setupCards.deck,
     tray: setupCards.tray,
+    foodCache: rollFoodCache(),
   };
 }
 
@@ -156,10 +167,13 @@ export function getNextPlayerId(game: TurnGameState): string {
 }
 
 export function endTurn(game: TurnGameState): TurnGameState {
+  const nextFoodCache = game.foodCache.length === 0 ? rollFoodCache() : game.foodCache;
+
   return {
     ...game,
     turn: game.turn + 1,
     currentPlayerId: getNextPlayerId(game),
+    foodCache: nextFoodCache,
   };
 }
 

@@ -167,6 +167,17 @@ export default function OasisGamePage() {
 
       {isInGame && gameState ? (
         <section style={{ display: "grid", gap: 10 }}>
+          <aside className="food-cache-panel" aria-label="Food cache">
+            <p className="food-cache-title">Food cache</p>
+            <div className="food-cache-tokens">
+              {gameState.foodCache.map((value, index) => (
+                <span key={`food-token-${index}-${value}`} className="food-cache-token">
+                  {value}
+                </span>
+              ))}
+            </div>
+          </aside>
+
           <h2>Game Board</h2>
           <p>
             Current player: <strong>{gameState.players[gameState.currentPlayerId]?.identity.name ?? gameState.currentPlayerId}</strong>

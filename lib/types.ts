@@ -118,6 +118,7 @@ export type TurnGameState = {
   turn: number;
   deck: Card[];
   tray: Card[];
+  foodCache: number[];
   lastAction?: ActionType;
 };
 
