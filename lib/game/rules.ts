@@ -1,11 +1,24 @@
 import { deterministicShuffle } from "./shuffle";
 import { EXPANDED_DECK } from "./cards";
 import { aggregateFinalScoring, determineWinnerId } from "./scoring";
-import { ACTION_TYPES, type ActionType, type Card, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
+import { ACTION_TYPES, BIOME_METADATA, type ActionType, type ActivationRowId, type Card, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
 
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
 const TRAY_SIZE = 3;
 const OPENING_HAND_SIZE = 2;
+
+function createEmptyTableau(): Record<ActivationRowId, Card[]> {
+  return {
+    understoryRow: [],
+    oasisEdgeRow: [],
+    meadowRow: [],
+  };
+}
+
+export function initialTableauByPlayerId(playerIds: string[]): Record<string, Record<ActivationRowId, Card[]>> {
+  return Object.fromEntries(playerIds.map((playerId) => [playerId, createEmptyTableau()]));
+}
+
 
 function dealOpeningHands(
   deck: Card[],
@@ -56,6 +69,7 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
     createdAt,
     players: Object.fromEntries(players.map((player) => [player.id, player])),
     handsByPlayerId: setupHands.handsByPlayerId,
+    tableauByPlayerId: initialTableauByPlayerId(playerOrder),
     playerOrder,
     currentPlayerId: playerOrder[0],
     turn: 1,
@@ -82,6 +96,51 @@ export function takeTrayCard(game: TurnGameState, trayIndex: number): { game: Tu
       ...game,
       deck: nextCards.deck,
       tray: nextCards.tray,
+    },
+  };
+}
+
+export function playCardToRow(
+  game: TurnGameState,
+  playerId: string,
+  cardId: string,
+  rowId: ActivationRowId,
+): { game: TurnGameState; card: Card | null } {
+  const hand = game.handsByPlayerId[playerId] ?? [];
+  const handIndex = hand.findIndex((card) => card.id === cardId);
+  if (handIndex === -1) {
+    return { game, card: null };
+  }
+
+  const card = hand[handIndex] ?? null;
+  if (!card) {
+    return { game, card: null };
+  }
+
+  const biome = BIOME_METADATA[card.biomes[0] ?? "canopy"]?.rowId;
+  if (biome !== rowId) {
+    return { game, card: null };
+  }
+
+  const nextHand = hand.filter((_, index) => index !== handIndex);
+  const playerTableau = game.tableauByPlayerId[playerId] ?? initialTableauByPlayerId([playerId])[playerId];
+  const nextRow = [card, ...(playerTableau[rowId] ?? [])];
+
+  return {
+    card,
+    game: {
+      ...game,
+      handsByPlayerId: {
+        ...game.handsByPlayerId,
+        [playerId]: nextHand,
+      },
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        [playerId]: {
+          ...playerTableau,
+          [rowId]: nextRow,
+        },
+      },
     },
   };
 }

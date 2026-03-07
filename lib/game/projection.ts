@@ -1,9 +1,10 @@
-import type { Card, PlayerIdentity, TurnGameState } from "../types";
+import type { ActivationRowId, Card, PlayerIdentity, TurnGameState } from "../types";
 
 export type ProjectedPlayerState = {
   identity: PlayerIdentity;
   handCount: number;
   hand?: Card[];
+  tableau: Record<ActivationRowId, Card[]>;
 };
 
 export type ProjectedTurnGameState = {
@@ -26,6 +27,7 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
       const projected: ProjectedPlayerState = {
         identity,
         handCount: hand.length,
+        tableau: state.tableauByPlayerId[playerId] ?? { understoryRow: [], oasisEdgeRow: [], meadowRow: [] },
         ...(playerId === viewerUid ? { hand } : {}),
       };
 

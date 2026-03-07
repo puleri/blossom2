@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { applyMoveIntent } from "../lib/game/intents";
 import { createGame, takeTrayCard } from "../lib/game/rules";
+import { BIOME_METADATA, type ActivationRowId, type Card } from "../lib/types";
+
+
+function rowForCard(card: Card): ActivationRowId {
+  const rowId = BIOME_METADATA[card.biomes[0] ?? "canopy"].rowId;
+  if (!rowId) {
+    throw new Error("Card is not playable to an activation row in this test.");
+  }
+
+  return rowId;
+}
 
 const game = createGame(
   "game-1",
@@ -29,7 +40,7 @@ describe("applyMoveIntent", () => {
   it("returns NOT_YOUR_TURN when actor is not active player", () => {
     const result = applyMoveIntent(
       game,
-      { actionType: "grow", expectedTurn: 1, expectedActionCounter: 0 },
+      { cardId: game.handsByPlayerId.p1[0].id, rowId: rowForCard(game.handsByPlayerId.p1[0]), expectedTurn: 1, expectedActionCounter: 0 },
       "p2",
       0,
     );
@@ -43,7 +54,7 @@ describe("applyMoveIntent", () => {
   it("returns STALE_STATE when counters do not match", () => {
     const result = applyMoveIntent(
       game,
-      { actionType: "grow", expectedTurn: 1, expectedActionCounter: 0 },
+      { cardId: game.handsByPlayerId.p1[0].id, rowId: rowForCard(game.handsByPlayerId.p1[0]), expectedTurn: 1, expectedActionCounter: 0 },
       "p1",
       1,
     );
@@ -54,10 +65,10 @@ describe("applyMoveIntent", () => {
     }
   });
 
-  it("advances turn and action counter on valid intent", () => {
+  it("plays a card, then advances turn and action counter on valid intent", () => {
     const result = applyMoveIntent(
       game,
-      { actionType: "pollinate", expectedTurn: 1, expectedActionCounter: 0 },
+      { cardId: game.handsByPlayerId.p1[0].id, rowId: rowForCard(game.handsByPlayerId.p1[0]), expectedTurn: 1, expectedActionCounter: 0 },
       "p1",
       0,
     );
@@ -67,7 +78,9 @@ describe("applyMoveIntent", () => {
       expect(result.state.turn).toBe(2);
       expect(result.state.currentPlayerId).toBe("p2");
       expect(result.actionCounter).toBe(1);
-      expect(result.state.lastAction).toBe("pollinate");
+      expect(result.state.handsByPlayerId.p1.length).toBe(game.handsByPlayerId.p1.length - 1);
+      const targetRowId = rowForCard(game.handsByPlayerId.p1[0]);
+      expect(result.state.tableauByPlayerId.p1[targetRowId][0]?.id).toBe(game.handsByPlayerId.p1[0].id);
     }
   });
 
@@ -81,7 +94,7 @@ describe("applyMoveIntent", () => {
 
     const result = applyMoveIntent(
       soloGame,
-      { actionType: "grow", expectedTurn: 1, expectedActionCounter: 0 },
+      { cardId: soloGame.handsByPlayerId.solo[0].id, rowId: rowForCard(soloGame.handsByPlayerId.solo[0]), expectedTurn: 1, expectedActionCounter: 0 },
       "solo",
       0,
     );
