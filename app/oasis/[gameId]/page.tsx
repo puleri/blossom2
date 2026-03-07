@@ -6,12 +6,7 @@ import { useParams } from "next/navigation";
 import { submitMoveIntent } from "../../../lib/moves-client";
 import { auth, ensureSignedIn } from "../../../lib/firebase";
 import type { ProjectedTurnGameState } from "../../../lib/game/projection";
-import {
-  ACTION_TYPES,
-  ACTIVATION_ROW_IDS,
-  ACTIVATION_ROW_METADATA,
-  type ActionType,
-} from "../../../lib/types";
+import { ACTIVATION_ROW_IDS, ACTIVATION_ROW_METADATA, type ActivationRowId } from "../../../lib/types";
 import { getDisplayPlayerOrder } from "./player-order";
 
 type RoomStatus = "lobby" | "in_game" | "finished";
@@ -40,6 +35,7 @@ export default function OasisGamePage() {
   const [status, setStatus] = useState("Connecting to game...");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -125,8 +121,8 @@ export default function OasisGamePage() {
     [currentUid, gameState?.playerOrder],
   );
 
-  const handleAction = async (actionType: ActionType) => {
-    if (!gameState || !room?.game || isSubmitting) {
+  const handlePlayCard = async (cardId: string, rowId: ActivationRowId) => {
+    if (!gameState || !room?.game || isSubmitting || currentUid !== gameState.currentPlayerId) {
       return;
     }
 
@@ -134,7 +130,8 @@ export default function OasisGamePage() {
       setIsSubmitting(true);
       setError(null);
       const result = await submitMoveIntent(gameId, {
-        actionType,
+        cardId,
+        rowId,
         expectedTurn: gameState.turn,
         expectedActionCounter: room.game.actionCounter,
       });
@@ -144,11 +141,12 @@ export default function OasisGamePage() {
         return;
       }
 
-      setStatus(`Submitted ${actionType}.`);
+      setStatus("Card played. Turn ended.");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to submit action.");
+      setError(submitError instanceof Error ? submitError.message : "Unable to submit move.");
     } finally {
       setIsSubmitting(false);
+      setDraggedCardId(null);
     }
   };
 
@@ -177,38 +175,11 @@ export default function OasisGamePage() {
           <p>
             Turn: <strong>{gameState.turn}</strong> · Actions processed: <strong>{room?.game?.actionCounter ?? 0}</strong>
           </p>
-          <p>Last action: {gameState.lastAction ?? "none"}</p>
-
-          <section style={{ display: "grid", gap: 8 }}>
-            <h3>Plant Tray</h3>
-            <p>
-              Draw pile: <strong>{gameState.deckCount}</strong>
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-              {Array.from({ length: 3 }, (_, slotIdx) => {
-                const card = gameState.tray[slotIdx];
-                return (
-                  <div
-                    key={`tray-slot-${slotIdx}`}
-                    style={{ border: "1px solid #bbb", borderRadius: 6, padding: 10, minHeight: 56 }}
-                  >
-                    {card ? (
-                      <>
-                        <strong>{card.name}</strong>
-                        <p style={{ margin: "4px 0 0", fontSize: 12, color: "#555" }}>{card.id}</p>
-                      </>
-                    ) : (
-                      <p style={{ margin: 0, color: "#777" }}>Empty</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
 
           <section style={{ display: "grid", gap: 12 }}>
             {displayPlayerOrder.map((playerId) => {
               const player = gameState.players[playerId];
+              const canDropHere = playerId === currentUid && currentUid === gameState.currentPlayerId;
 
               return (
                 <article
@@ -233,29 +204,48 @@ export default function OasisGamePage() {
                     ) : null}
                   </header>
 
-                  {playerId === currentUid ? (
-                    <p style={{ margin: 0, fontSize: 13 }}>
-                      Your hand: <strong>{player?.handCount ?? 0} cards</strong> (shown below)
-                    </p>
-                  ) : (
-                    <p style={{ margin: 0, fontSize: 13 }}>
-                      Opponent hand: <strong>{player?.handCount ?? 0} cards</strong> (hidden)
-                    </p>
-                  )}
-
                   <div className="activation-row-grid">
                     {ACTIVATION_ROW_IDS.map((rowId) => {
                       const rowMetadata = ACTIVATION_ROW_METADATA[rowId];
+                      const rowCards = player?.tableau?.[rowId] ?? [];
+
                       return (
                         <div key={rowId} className="activation-row-card">
                           <p className="activation-row-title">{rowMetadata.displayName}</p>
-                          <p className="activation-row-hint">Action hint: {rowMetadata.actionType}</p>
+                          <p className="activation-row-hint">Drop a matching card here</p>
+                          <div
+                            className={`activation-row-dropzone ${canDropHere ? "is-droppable" : ""} ${draggedCardId ? "is-drag-over" : ""}`}
+                            onDragOver={(event) => {
+                              if (!canDropHere) {
+                                return;
+                              }
+
+                              event.preventDefault();
+                            }}
+                            onDrop={(event) => {
+                              if (!canDropHere) {
+                                return;
+                              }
+
+                              event.preventDefault();
+                              const cardId = event.dataTransfer.getData("text/plain");
+                              if (!cardId) {
+                                return;
+                              }
+
+                              void handlePlayCard(cardId, rowId);
+                            }}
+                          >
+                            {rowCards.map((card) => (
+                              <div key={`${playerId}-${rowId}-${card.id}`} className="tableau-card">
+                                <strong>{card.name}</strong>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-
-                  <footer style={{ fontSize: 13, color: "#444" }}>Summary: board details coming online.</footer>
                 </article>
               );
             })}
@@ -263,10 +253,20 @@ export default function OasisGamePage() {
 
           <section className="player-hand-panel" aria-label="Your hand">
             <h3>Your hand</h3>
+            <p className="player-hand-empty">Drag a card to one of your rows to play it. Playing a card ends your turn.</p>
             {currentPlayerState?.hand?.length ? (
               <div className="player-hand-scroll">
                 {currentPlayerState.hand.map((card) => (
-                  <article key={card.id} className="player-hand-card">
+                  <article
+                    key={card.id}
+                    className="player-hand-card"
+                    draggable={currentUid === gameState.currentPlayerId && !isSubmitting}
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData("text/plain", card.id);
+                      setDraggedCardId(card.id);
+                    }}
+                    onDragEnd={() => setDraggedCardId(null)}
+                  >
                     <strong>{card.name}</strong>
                     <p>{card.id}</p>
                   </article>
@@ -279,27 +279,7 @@ export default function OasisGamePage() {
         </section>
       ) : null}
 
-      {isInGame && gameState ? (
-        <section style={{ display: "grid", gap: 10 }}>
-          <h2>Actions</h2>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {ACTION_TYPES.map((actionType) => (
-              <button
-                key={actionType}
-                type="button"
-                onClick={() => handleAction(actionType)}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : `Do ${actionType}`}
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {room && room.status !== "lobby" && !isInGame ? (
-        <p>Game is not yet in an active playable phase.</p>
-      ) : null}
+      {room && room.status !== "lobby" && !isInGame ? <p>Game is not yet in an active playable phase.</p> : null}
 
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
     </main>

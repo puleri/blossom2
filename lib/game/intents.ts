@@ -1,8 +1,9 @@
-import { endTurn, isTurnActionId } from "./rules";
-import type { ActionType, TurnGameState } from "../types";
+import { endTurn, playCardToRow } from "./rules";
+import type { ActivationRowId, TurnGameState } from "../types";
 
 export type MoveIntent = {
-  actionType: ActionType;
+  cardId: string;
+  rowId: ActivationRowId;
   expectedTurn: number;
   expectedActionCounter: number;
 };
@@ -49,20 +50,19 @@ export function applyMoveIntent(
     };
   }
 
-  if (!isTurnActionId(intent.actionType)) {
+  const played = playCardToRow(state, actorUid, intent.cardId, intent.rowId);
+
+  if (!played.card) {
     return {
       ok: false,
       error: {
         code: "INVALID_ACTION",
-        message: "Unknown action.",
+        message: "Unable to play card to that row.",
       },
     };
   }
 
-  const nextState = {
-    ...endTurn(state),
-    lastAction: intent.actionType,
-  };
+  const nextState = endTurn(played.game);
 
   return {
     ok: true,
