@@ -27,6 +27,15 @@ export type ProjectedTurnGameState = {
   tray: Card[];
   foodCache: FoodToken[];
   players: Record<string, ProjectedPlayerState>;
+  diagnostics: ProjectionDiagnostic[];
+};
+
+export type ProjectionDiagnostic = {
+  code: "UNKNOWN_CARD_ID";
+  cardId: CardId;
+  source: "hand" | "tray" | "tableau";
+  playerId?: string;
+  rowId?: ActivationRowId;
 };
 
 const EMPTY_TABLEAU: Record<ActivationRowId, CardId[]> = {
@@ -35,45 +44,91 @@ const EMPTY_TABLEAU: Record<ActivationRowId, CardId[]> = {
   meadowRow: [],
 };
 
-function hydrateCardIds(cardIds: CardId[]): Card[] {
+function hydrateCardIds(
+  cardIds: CardId[],
+  context: Omit<ProjectionDiagnostic, "code" | "cardId">,
+): { cards: Card[]; diagnostics: ProjectionDiagnostic[] } {
   const hydratedCards: Card[] = [];
+  const diagnostics: ProjectionDiagnostic[] = [];
 
   for (const cardId of cardIds) {
     const card = CARD_BY_ID.get(cardId);
 
     if (!card) {
-      console.warn(`[projectTurnGameState] Missing card definition for cardId: ${cardId}`);
+      diagnostics.push({
+        code: "UNKNOWN_CARD_ID",
+        cardId,
+        ...context,
+      });
       continue;
     }
 
     hydratedCards.push(card);
   }
 
-  return hydratedCards;
+  return { cards: hydratedCards, diagnostics };
 }
 
-function hydrateTableau(tableau: Record<ActivationRowId, CardId[]>): Record<ActivationRowId, Card[]> {
+function hydrateTableau(
+  tableau: Record<ActivationRowId, CardId[]>,
+  playerId: string,
+): { tableau: Record<ActivationRowId, Card[]>; diagnostics: ProjectionDiagnostic[] } {
+  const understory = hydrateCardIds(tableau.understoryRow ?? [], {
+    source: "tableau",
+    playerId,
+    rowId: "understoryRow",
+  });
+  const oasisEdge = hydrateCardIds(tableau.oasisEdgeRow ?? [], {
+    source: "tableau",
+    playerId,
+    rowId: "oasisEdgeRow",
+  });
+  const meadow = hydrateCardIds(tableau.meadowRow ?? [], {
+    source: "tableau",
+    playerId,
+    rowId: "meadowRow",
+  });
+
   return {
-    understoryRow: hydrateCardIds(tableau.understoryRow ?? []),
-    oasisEdgeRow: hydrateCardIds(tableau.oasisEdgeRow ?? []),
-    meadowRow: hydrateCardIds(tableau.meadowRow ?? []),
+    tableau: {
+      understoryRow: understory.cards,
+      oasisEdgeRow: oasisEdge.cards,
+      meadowRow: meadow.cards,
+    },
+    diagnostics: [...understory.diagnostics, ...oasisEdge.diagnostics, ...meadow.diagnostics],
   };
 }
 
 export function projectTurnGameState(state: TurnGameState, viewerUid: string): ProjectedTurnGameState {
+  const diagnostics: ProjectionDiagnostic[] = [];
   const players = Object.fromEntries(
     Object.entries(state.players).map(([playerId, identity]) => {
       const hand = state.handsByPlayerId[playerId] ?? [];
+      const hydratedTableau = hydrateTableau(state.tableauByPlayerId[playerId] ?? EMPTY_TABLEAU, playerId);
+      diagnostics.push(...hydratedTableau.diagnostics);
+      const hydratedHand = playerId === viewerUid
+        ? hydrateCardIds(hand, {
+            source: "hand",
+            playerId,
+          })
+        : null;
+      if (hydratedHand) {
+        diagnostics.push(...hydratedHand.diagnostics);
+      }
+
       const projected: ProjectedPlayerState = {
         identity,
         handCount: hand.length,
-        tableau: hydrateTableau(state.tableauByPlayerId[playerId] ?? EMPTY_TABLEAU),
-        ...(playerId === viewerUid ? { hand: hydrateCardIds(hand) } : {}),
+        tableau: hydratedTableau.tableau,
+        ...(hydratedHand ? { hand: hydratedHand.cards } : {}),
       };
 
       return [playerId, projected];
     }),
   );
+
+  const hydratedTray = hydrateCardIds(state.tray, { source: "tray" });
+  diagnostics.push(...hydratedTray.diagnostics);
 
   return {
     gameId: state.gameId,
@@ -84,8 +139,9 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
     playerOrder: state.playerOrder,
     lastAction: state.lastAction,
     deckCount: state.deck.length,
-    tray: hydrateCardIds(state.tray),
+    tray: hydratedTray.cards,
     foodCache: state.foodCache,
     players,
+    diagnostics,
   };
 }
