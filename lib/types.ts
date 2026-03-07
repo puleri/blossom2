@@ -7,6 +7,8 @@ export const ACTION_TYPES = ["grow", "root", "toTheSun", "pollinate"] as const;
 export type ActionType = (typeof ACTION_TYPES)[number];
 
 export type Resource = "water" | "compost" | "pollinator" | "mineral" | "trellis" | "wild";
+export const FOOD_TOKEN_TYPES = ["W", "M", "C", "T", "P"] as const;
+export type FoodToken = (typeof FOOD_TOKEN_TYPES)[number];
 export const BIOME_IDS = ["understory", "oasisEdge", "meadow", "canopy"] as const;
 export type Biome = (typeof BIOME_IDS)[number];
 
@@ -118,7 +120,7 @@ export type TurnGameState = {
   turn: number;
   deck: Card[];
   tray: Card[];
-  foodCache: number[];
+  foodCache: FoodToken[];
   lastAction?: ActionType;
 };
 
