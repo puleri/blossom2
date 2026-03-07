@@ -25,6 +25,43 @@ type RoomSnapshotResponse =
   | { ok: true; room: RoomDoc }
   | { ok: false; error: { code: "NOT_AUTHENTICATED" | "INVALID_ACTION"; message: string } };
 
+function buildOptimisticRoom(
+  room: RoomDoc,
+  playerId: string,
+  cardId: string,
+  rowId: ActivationRowId,
+): RoomDoc {
+  const gameState = room.game?.state;
+  const player = gameState?.players[playerId];
+  const cardInHand = player?.hand?.find((card) => card.id === cardId);
+
+  if (!room.game || !gameState || !player || !cardInHand) {
+    return room;
+  }
+
+  return {
+    ...room,
+    game: {
+      ...room.game,
+      state: {
+        ...gameState,
+        players: {
+          ...gameState.players,
+          [playerId]: {
+            ...player,
+            handCount: Math.max(0, player.handCount - 1),
+            hand: (player.hand ?? []).filter((card) => card.id !== cardId),
+            tableau: {
+              ...player.tableau,
+              [rowId]: [...(player.tableau[rowId] ?? []), cardInHand],
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 export default function OasisGamePage() {
   const params = useParams<{ gameId: string }>();
   const gameId = useMemo(() => String(params.gameId ?? ""), [params.gameId]);
@@ -126,9 +163,15 @@ export default function OasisGamePage() {
       return;
     }
 
+    const optimisticRoom = buildOptimisticRoom(room, currentUid, cardId, rowId);
+    const shouldApplyOptimisticUpdate = optimisticRoom !== room;
+
     try {
       setIsSubmitting(true);
       setError(null);
+      if (shouldApplyOptimisticUpdate) {
+        setRoom(optimisticRoom);
+      }
       const result = await submitMoveIntent(gameId, {
         cardId,
         rowId,
@@ -137,12 +180,18 @@ export default function OasisGamePage() {
       });
 
       if (!result.ok) {
+        if (shouldApplyOptimisticUpdate) {
+          setRoom(room);
+        }
         setError(result.error.message);
         return;
       }
 
       setStatus("Card played. Turn ended.");
     } catch (submitError) {
+      if (shouldApplyOptimisticUpdate) {
+        setRoom(room);
+      }
       setError(submitError instanceof Error ? submitError.message : "Unable to submit move.");
     } finally {
       setIsSubmitting(false);
