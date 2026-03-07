@@ -6,8 +6,20 @@ import { useParams } from "next/navigation";
 import { submitMoveIntent } from "../../../lib/moves-client";
 import { auth, ensureSignedIn } from "../../../lib/firebase";
 import type { ProjectedTurnGameState } from "../../../lib/game/projection";
-import { ACTIVATION_ROW_IDS, ACTIVATION_ROW_METADATA, type ActivationRowId } from "../../../lib/types";
+import {
+  ACTIVATION_ROW_IDS,
+  type ActivationRowId,
+  type TableauRowId,
+} from "../../../lib/types";
 import { getDisplayPlayerOrder } from "./player-order";
+
+const TABLEAU_ROW_LABELS: Record<TableauRowId, string> = {
+  oasisEdgeRow: "Oasis Edge",
+  understoryRow: "Understory",
+  canopyRow: "Canopy",
+};
+
+const TABLEAU_ROW_DISPLAY_ORDER: TableauRowId[] = ["oasisEdgeRow", "understoryRow", "canopyRow"];
 
 type RoomStatus = "lobby" | "in_game" | "finished";
 
@@ -265,25 +277,30 @@ export default function OasisGamePage() {
                   </header>
 
                   <div className="activation-row-grid">
-                    {ACTIVATION_ROW_IDS.map((rowId) => {
-                      const rowMetadata = ACTIVATION_ROW_METADATA[rowId];
+                    {TABLEAU_ROW_DISPLAY_ORDER.map((rowId) => {
+                      const isActivationRow = ACTIVATION_ROW_IDS.includes(rowId as ActivationRowId);
                       const rowCards = player?.tableau?.[rowId] ?? [];
+                      const dropzoneClassName = `activation-row-dropzone ${
+                        canDropHere && isActivationRow ? "is-droppable" : ""
+                      } ${draggedCardId && isActivationRow ? "is-drag-over" : ""}`;
 
                       return (
                         <div key={rowId} className="activation-row-card">
-                          <p className="activation-row-title">{rowMetadata.displayName}</p>
-                          <p className="activation-row-hint">Drop a matching card here</p>
+                          <p className="activation-row-title">{TABLEAU_ROW_LABELS[rowId]}</p>
+                          <p className="activation-row-hint">
+                            {isActivationRow ? "Drop a matching card here" : "Cards grow here from effects"}
+                          </p>
                           <div
-                            className={`activation-row-dropzone ${canDropHere ? "is-droppable" : ""} ${draggedCardId ? "is-drag-over" : ""}`}
+                            className={dropzoneClassName}
                             onDragOver={(event) => {
-                              if (!canDropHere) {
+                              if (!canDropHere || !isActivationRow) {
                                 return;
                               }
 
                               event.preventDefault();
                             }}
                             onDrop={(event) => {
-                              if (!canDropHere) {
+                              if (!canDropHere || !isActivationRow) {
                                 return;
                               }
 
@@ -293,7 +310,7 @@ export default function OasisGamePage() {
                                 return;
                               }
 
-                              void handlePlayCard(cardId, rowId);
+                              void handlePlayCard(cardId, rowId as ActivationRowId);
                             }}
                           >
                             {rowCards.map((card) => (
