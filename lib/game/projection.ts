@@ -1,10 +1,18 @@
-import type { ActivationRowId, CardId, FoodToken, PlayerIdentity, TurnGameState } from "../types";
+import { CARD_BY_ID } from "./cards";
+import type {
+  ActivationRowId,
+  Card,
+  CardId,
+  FoodToken,
+  PlayerIdentity,
+  TurnGameState,
+} from "../types";
 
 export type ProjectedPlayerState = {
   identity: PlayerIdentity;
   handCount: number;
-  hand?: CardId[];
-  tableau: Record<ActivationRowId, CardId[]>;
+  hand?: Card[];
+  tableau: Record<ActivationRowId, Card[]>;
 };
 
 export type ProjectedTurnGameState = {
@@ -16,10 +24,41 @@ export type ProjectedTurnGameState = {
   playerOrder: string[];
   lastAction?: TurnGameState["lastAction"];
   deckCount: number;
-  tray: CardId[];
+  tray: Card[];
   foodCache: FoodToken[];
   players: Record<string, ProjectedPlayerState>;
 };
+
+const EMPTY_TABLEAU: Record<ActivationRowId, CardId[]> = {
+  understoryRow: [],
+  oasisEdgeRow: [],
+  meadowRow: [],
+};
+
+function hydrateCardIds(cardIds: CardId[]): Card[] {
+  const hydratedCards: Card[] = [];
+
+  for (const cardId of cardIds) {
+    const card = CARD_BY_ID.get(cardId);
+
+    if (!card) {
+      console.warn(`[projectTurnGameState] Missing card definition for cardId: ${cardId}`);
+      continue;
+    }
+
+    hydratedCards.push(card);
+  }
+
+  return hydratedCards;
+}
+
+function hydrateTableau(tableau: Record<ActivationRowId, CardId[]>): Record<ActivationRowId, Card[]> {
+  return {
+    understoryRow: hydrateCardIds(tableau.understoryRow ?? []),
+    oasisEdgeRow: hydrateCardIds(tableau.oasisEdgeRow ?? []),
+    meadowRow: hydrateCardIds(tableau.meadowRow ?? []),
+  };
+}
 
 export function projectTurnGameState(state: TurnGameState, viewerUid: string): ProjectedTurnGameState {
   const players = Object.fromEntries(
@@ -28,8 +67,8 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
       const projected: ProjectedPlayerState = {
         identity,
         handCount: hand.length,
-        tableau: state.tableauByPlayerId[playerId] ?? { understoryRow: [], oasisEdgeRow: [], meadowRow: [] },
-        ...(playerId === viewerUid ? { hand } : {}),
+        tableau: hydrateTableau(state.tableauByPlayerId[playerId] ?? EMPTY_TABLEAU),
+        ...(playerId === viewerUid ? { hand: hydrateCardIds(hand) } : {}),
       };
 
       return [playerId, projected];
@@ -45,7 +84,7 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
     playerOrder: state.playerOrder,
     lastAction: state.lastAction,
     deckCount: state.deck.length,
-    tray: state.tray,
+    tray: hydrateCardIds(state.tray),
     foodCache: state.foodCache,
     players,
   };

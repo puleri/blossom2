@@ -138,3 +138,5 @@ const COPIES_PER_BASE_CARD = 3;
 export const EXPANDED_DECK: PlantDefinition[] = BASE_CARDS.flatMap((baseCard) =>
   Array.from({ length: COPIES_PER_BASE_CARD }, (_, i) => card(baseCard, i + 1)),
 );
+
+export const CARD_BY_ID = new Map(EXPANDED_DECK.map((cardDefinition) => [cardDefinition.id, cardDefinition]));
