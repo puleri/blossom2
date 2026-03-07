@@ -41,7 +41,6 @@ export type ProjectionDiagnostic = {
 const EMPTY_TABLEAU: Record<ActivationRowId, CardId[]> = {
   understoryRow: [],
   oasisEdgeRow: [],
-  meadowRow: [],
 };
 
 function hydrateCardIds(
@@ -83,19 +82,12 @@ function hydrateTableau(
     playerId,
     rowId: "oasisEdgeRow",
   });
-  const meadow = hydrateCardIds(tableau.meadowRow ?? [], {
-    source: "tableau",
-    playerId,
-    rowId: "meadowRow",
-  });
-
   return {
     tableau: {
       understoryRow: understory.cards,
       oasisEdgeRow: oasisEdge.cards,
-      meadowRow: meadow.cards,
     },
-    diagnostics: [...understory.diagnostics, ...oasisEdge.diagnostics, ...meadow.diagnostics],
+    diagnostics: [...understory.diagnostics, ...oasisEdge.diagnostics],
   };
 }
 

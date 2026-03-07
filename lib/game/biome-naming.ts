@@ -10,11 +10,9 @@ import {
 const BIOME_ALIASES: Record<string, Biome> = {
   cavern: "understory",
   grove: "oasisEdge",
-  glade: "meadow",
   understory: "understory",
   "oasis edge": "oasisEdge",
   oasisedge: "oasisEdge",
-  meadow: "meadow",
   canopy: "canopy",
 };
 

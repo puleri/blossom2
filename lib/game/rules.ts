@@ -20,7 +20,6 @@ function createEmptyTableau(): Record<ActivationRowId, CardId[]> {
   return {
     understoryRow: [],
     oasisEdgeRow: [],
-    meadowRow: [],
   };
 }
 
