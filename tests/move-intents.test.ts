@@ -85,6 +85,47 @@ describe("applyMoveIntent", () => {
     }
   });
 
+
+
+  it("rejects play intents for card IDs that are not in the active player hand", () => {
+    const intentCardId = game.handsByPlayerId.p2[0];
+    const result = applyMoveIntent(
+      game,
+      {
+        cardId: intentCardId,
+        rowId: rowForCard(intentCardId),
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("INVALID_ACTION");
+    }
+  });
+
+  it("rejects play intents for unknown card IDs", () => {
+    const result = applyMoveIntent(
+      game,
+      {
+        cardId: "unknown-card-id",
+        rowId: "understoryRow",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("INVALID_ACTION");
+    }
+  });
+
   it("plays a card, then advances turn and action counter on valid intent", () => {
     const result = applyMoveIntent(
       game,
