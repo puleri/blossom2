@@ -1,7 +1,7 @@
 import { deterministicShuffle } from "./shuffle";
 import { EXPANDED_DECK } from "./cards";
 import { aggregateFinalScoring, determineWinnerId } from "./scoring";
-import { ACTION_TYPES, BIOME_METADATA, FOOD_TOKEN_TYPES, type ActionType, type ActivationRowId, type Card, type FoodToken, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
+import { ACTION_TYPES, BIOME_METADATA, FOOD_TOKEN_TYPES, type ActionType, type ActivationRowId, type CardId, type FoodToken, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
 
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
 const TRAY_SIZE = 3;
@@ -16,7 +16,7 @@ function rollFoodCache(count = FOOD_TOKEN_COUNT): FoodToken[] {
   return Array.from({ length: count }, () => rollFoodToken());
 }
 
-function createEmptyTableau(): Record<ActivationRowId, Card[]> {
+function createEmptyTableau(): Record<ActivationRowId, CardId[]> {
   return {
     understoryRow: [],
     oasisEdgeRow: [],
@@ -24,17 +24,17 @@ function createEmptyTableau(): Record<ActivationRowId, Card[]> {
   };
 }
 
-export function initialTableauByPlayerId(playerIds: string[]): Record<string, Record<ActivationRowId, Card[]>> {
+export function initialTableauByPlayerId(playerIds: string[]): Record<string, Record<ActivationRowId, CardId[]>> {
   return Object.fromEntries(playerIds.map((playerId) => [playerId, createEmptyTableau()]));
 }
 
 
 function dealOpeningHands(
-  deck: Card[],
+  deck: CardId[],
   playerIds: string[],
   cardsPerPlayer = OPENING_HAND_SIZE,
-): { deck: Card[]; handsByPlayerId: Record<string, Card[]> } {
-  const handsByPlayerId: Record<string, Card[]> = {};
+): { deck: CardId[]; handsByPlayerId: Record<string, CardId[]> } {
+  const handsByPlayerId: Record<string, CardId[]> = {};
   let nextDeck = deck;
 
   for (const playerId of playerIds) {
@@ -45,7 +45,7 @@ function dealOpeningHands(
   return { deck: nextDeck, handsByPlayerId };
 }
 
-function drawToTray(deck: Card[], tray: Card[], maxSize = TRAY_SIZE): { deck: Card[]; tray: Card[] } {
+function drawToTray(deck: CardId[], tray: CardId[], maxSize = TRAY_SIZE): { deck: CardId[]; tray: CardId[] } {
   if (tray.length >= maxSize || deck.length === 0) {
     return { deck, tray };
   }
@@ -68,7 +68,7 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
 
   const createdAt = new Date().toISOString();
   const playerOrder = players.map((player) => player.id);
-  const shuffledDeck = deterministicShuffle(EXPANDED_DECK, seed);
+  const shuffledDeck = deterministicShuffle(EXPANDED_DECK.map((card) => card.id), seed);
   const setupHands = dealOpeningHands(shuffledDeck, playerOrder);
   const setupCards = drawToTray(setupHands.deck, []);
 
@@ -88,7 +88,7 @@ export function createGame(gameId: string, players: PlayerIdentity[], seed: numb
   };
 }
 
-export function takeTrayCard(game: TurnGameState, trayIndex: number): { game: TurnGameState; card: Card | null } {
+export function takeTrayCard(game: TurnGameState, trayIndex: number): { game: TurnGameState; card: CardId | null } {
   if (trayIndex < 0 || trayIndex >= game.tray.length) {
     return { game, card: null };
   }
@@ -115,9 +115,9 @@ export function playCardToRow(
   playerId: string,
   cardId: string,
   rowId: ActivationRowId,
-): { game: TurnGameState; card: Card | null } {
+): { game: TurnGameState; card: CardId | null } {
   const hand = game.handsByPlayerId[playerId] ?? [];
-  const handIndex = hand.findIndex((card) => card.id === cardId);
+  const handIndex = hand.findIndex((id) => id === cardId);
   if (handIndex === -1) {
     return { game, card: null };
   }
@@ -127,7 +127,12 @@ export function playCardToRow(
     return { game, card: null };
   }
 
-  const biome = BIOME_METADATA[card.biomes[0] ?? "canopy"]?.rowId;
+  const deckCard = EXPANDED_DECK.find((candidate) => candidate.id === card);
+  if (!deckCard) {
+    return { game, card: null };
+  }
+
+  const biome = BIOME_METADATA[deckCard.biomes[0] ?? "canopy"]?.rowId;
   if (biome !== rowId) {
     return { game, card: null };
   }

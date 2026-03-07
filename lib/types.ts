@@ -107,19 +107,20 @@ export type PlantDefinition = {
 };
 
 export type Card = PlantDefinition;
+export type CardId = string;
 
 export type TurnGameState = {
   gameId: string;
   seed: number;
   createdAt: string;
   players: Record<string, PlayerIdentity>;
-  handsByPlayerId: Record<string, Card[]>;
-  tableauByPlayerId: Record<string, Record<ActivationRowId, Card[]>>;
+  handsByPlayerId: Record<string, CardId[]>;
+  tableauByPlayerId: Record<string, Record<ActivationRowId, CardId[]>>;
   playerOrder: string[];
   currentPlayerId: string;
   turn: number;
-  deck: Card[];
-  tray: Card[];
+  deck: CardId[];
+  tray: CardId[];
   foodCache: FoodToken[];
   lastAction?: ActionType;
 };

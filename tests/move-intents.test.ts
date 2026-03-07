@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { applyMoveIntent } from "../lib/game/intents";
+import { EXPANDED_DECK } from "../lib/game/cards";
 import { createGame, takeTrayCard } from "../lib/game/rules";
-import { BIOME_METADATA, type ActivationRowId, type Card } from "../lib/types";
+import { BIOME_METADATA, type ActivationRowId, type Card, type CardId } from "../lib/types";
 
+function cardById(cardId: CardId): Card {
+  const card = EXPANDED_DECK.find((candidate) => candidate.id === cardId);
+  if (!card) {
+    throw new Error(`Missing card definition for ${cardId}`);
+  }
 
-function rowForCard(card: Card): ActivationRowId {
+  return card;
+}
+
+function rowForCard(cardId: CardId): ActivationRowId {
+  const card = cardById(cardId);
   const rowId = BIOME_METADATA[card.biomes[0] ?? "canopy"].rowId;
   if (!rowId) {
     throw new Error("Card is not playable to an activation row in this test.");
@@ -40,7 +50,12 @@ describe("applyMoveIntent", () => {
   it("returns NOT_YOUR_TURN when actor is not active player", () => {
     const result = applyMoveIntent(
       game,
-      { cardId: game.handsByPlayerId.p1[0].id, rowId: rowForCard(game.handsByPlayerId.p1[0]), expectedTurn: 1, expectedActionCounter: 0 },
+      {
+        cardId: game.handsByPlayerId.p1[0],
+        rowId: rowForCard(game.handsByPlayerId.p1[0]),
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
       "p2",
       0,
     );
@@ -54,7 +69,12 @@ describe("applyMoveIntent", () => {
   it("returns STALE_STATE when counters do not match", () => {
     const result = applyMoveIntent(
       game,
-      { cardId: game.handsByPlayerId.p1[0].id, rowId: rowForCard(game.handsByPlayerId.p1[0]), expectedTurn: 1, expectedActionCounter: 0 },
+      {
+        cardId: game.handsByPlayerId.p1[0],
+        rowId: rowForCard(game.handsByPlayerId.p1[0]),
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
       "p1",
       1,
     );
@@ -68,7 +88,12 @@ describe("applyMoveIntent", () => {
   it("plays a card, then advances turn and action counter on valid intent", () => {
     const result = applyMoveIntent(
       game,
-      { cardId: game.handsByPlayerId.p1[0].id, rowId: rowForCard(game.handsByPlayerId.p1[0]), expectedTurn: 1, expectedActionCounter: 0 },
+      {
+        cardId: game.handsByPlayerId.p1[0],
+        rowId: rowForCard(game.handsByPlayerId.p1[0]),
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
       "p1",
       0,
     );
@@ -80,10 +105,9 @@ describe("applyMoveIntent", () => {
       expect(result.actionCounter).toBe(1);
       expect(result.state.handsByPlayerId.p1.length).toBe(game.handsByPlayerId.p1.length - 1);
       const targetRowId = rowForCard(game.handsByPlayerId.p1[0]);
-      expect(result.state.tableauByPlayerId.p1[targetRowId][0]?.id).toBe(game.handsByPlayerId.p1[0].id);
+      expect(result.state.tableauByPlayerId.p1[targetRowId][0]).toBe(game.handsByPlayerId.p1[0]);
     }
   });
-
 
   it("supports solo games by keeping turn control with the same player", () => {
     const soloGame = createGame(
@@ -94,7 +118,12 @@ describe("applyMoveIntent", () => {
 
     const result = applyMoveIntent(
       soloGame,
-      { cardId: soloGame.handsByPlayerId.solo[0].id, rowId: rowForCard(soloGame.handsByPlayerId.solo[0]), expectedTurn: 1, expectedActionCounter: 0 },
+      {
+        cardId: soloGame.handsByPlayerId.solo[0],
+        rowId: rowForCard(soloGame.handsByPlayerId.solo[0]),
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
       "solo",
       0,
     );
