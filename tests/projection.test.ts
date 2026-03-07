@@ -27,7 +27,6 @@ describe("projectTurnGameState", () => {
         p1: {
           understoryRow: [CARD_TWO],
           oasisEdgeRow: [],
-          meadowRow: [],
         },
       },
       playerOrder: ["p1"],
@@ -61,7 +60,6 @@ describe("projectTurnGameState", () => {
         p1: {
           understoryRow: ["unknown-tableau-card", CARD_TWO],
           oasisEdgeRow: [],
-          meadowRow: [],
         },
       },
       playerOrder: ["p1"],

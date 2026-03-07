@@ -74,7 +74,7 @@ const BASE_CARDS: Array<Omit<PlantDefinition, "id">> = [
       },
     },
     maxSunTokens: 5,
-    biomes: ["meadow"],
+    biomes: ["oasisEdge"],
   },
   {
     key: "redwood-sorrel",
@@ -108,7 +108,7 @@ const BASE_CARDS: Array<Omit<PlantDefinition, "id">> = [
       },
     },
     maxSunTokens: 6,
-    biomes: ["meadow", "oasisEdge"],
+    biomes: ["oasisEdge"],
   },
   {
     key: "sword-fern",

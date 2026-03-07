@@ -9,10 +9,10 @@ export type ActionType = (typeof ACTION_TYPES)[number];
 export type Resource = "water" | "compost" | "pollinator" | "mineral" | "trellis" | "wild";
 export const FOOD_TOKEN_TYPES = ["W", "M", "C", "T", "P"] as const;
 export type FoodToken = (typeof FOOD_TOKEN_TYPES)[number];
-export const BIOME_IDS = ["understory", "oasisEdge", "meadow", "canopy"] as const;
+export const BIOME_IDS = ["understory", "oasisEdge", "canopy"] as const;
 export type Biome = (typeof BIOME_IDS)[number];
 
-export const ACTIVATION_ROW_IDS = ["understoryRow", "oasisEdgeRow", "meadowRow"] as const;
+export const ACTIVATION_ROW_IDS = ["understoryRow", "oasisEdgeRow"] as const;
 export type ActivationRowId = (typeof ACTIVATION_ROW_IDS)[number];
 
 export type Trigger = "onPlay" | "onMature" | "onActivate";
@@ -186,19 +186,12 @@ export const ACTIVATION_ROW_METADATA: Record<ActivationRowId, ActivationRowMetad
     actionType: "toTheSun",
     activationOrder: "rightToLeft",
   },
-  meadowRow: {
-    biome: "meadow",
-    displayName: "Meadow",
-    actionType: "pollinate",
-    activationOrder: "rightToLeft",
-  },
 };
 
 export const BIOME_METADATA: Record<Biome, { displayName: string; rowId: ActivationRowId | null }> = {
   canopy: { displayName: "Canopy", rowId: null },
   understory: { displayName: "Understory", rowId: "understoryRow" },
   oasisEdge: { displayName: "Oasis Edge", rowId: "oasisEdgeRow" },
-  meadow: { displayName: "Meadow", rowId: "meadowRow" },
 };
 
 export type PowerResolutionState = {
