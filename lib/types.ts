@@ -14,6 +14,8 @@ export type Biome = (typeof BIOME_IDS)[number];
 
 export const ACTIVATION_ROW_IDS = ["understoryRow", "oasisEdgeRow"] as const;
 export type ActivationRowId = (typeof ACTIVATION_ROW_IDS)[number];
+export const TABLEAU_ROW_IDS = ["understoryRow", "oasisEdgeRow", "canopyRow"] as const;
+export type TableauRowId = (typeof TABLEAU_ROW_IDS)[number];
 
 export type Trigger = "onPlay" | "onMature" | "onActivate";
 export type ActivateAction = "root" | "toTheSun" | "pollinate";
@@ -115,7 +117,7 @@ export type TurnGameState = {
   createdAt: string;
   players: Record<string, PlayerIdentity>;
   handsByPlayerId: Record<string, CardId[]>;
-  tableauByPlayerId: Record<string, Record<ActivationRowId, CardId[]>>;
+  tableauByPlayerId: Record<string, Record<TableauRowId, CardId[]>>;
   playerOrder: string[];
   currentPlayerId: string;
   turn: number;

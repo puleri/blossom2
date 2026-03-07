@@ -6,13 +6,14 @@ import type {
   FoodToken,
   PlayerIdentity,
   TurnGameState,
+  TableauRowId,
 } from "../types";
 
 export type ProjectedPlayerState = {
   identity: PlayerIdentity;
   handCount: number;
   hand?: Card[];
-  tableau: Record<ActivationRowId, Card[]>;
+  tableau: Record<TableauRowId, Card[]>;
 };
 
 export type ProjectedTurnGameState = {
@@ -38,9 +39,10 @@ export type ProjectionDiagnostic = {
   rowId?: ActivationRowId;
 };
 
-const EMPTY_TABLEAU: Record<ActivationRowId, CardId[]> = {
+const EMPTY_TABLEAU: Record<TableauRowId, CardId[]> = {
   understoryRow: [],
   oasisEdgeRow: [],
+  canopyRow: [],
 };
 
 function hydrateCardIds(
@@ -69,9 +71,9 @@ function hydrateCardIds(
 }
 
 function hydrateTableau(
-  tableau: Record<ActivationRowId, CardId[]>,
+  tableau: Record<TableauRowId, CardId[]>,
   playerId: string,
-): { tableau: Record<ActivationRowId, Card[]>; diagnostics: ProjectionDiagnostic[] } {
+): { tableau: Record<TableauRowId, Card[]>; diagnostics: ProjectionDiagnostic[] } {
   const understory = hydrateCardIds(tableau.understoryRow ?? [], {
     source: "tableau",
     playerId,
@@ -82,12 +84,17 @@ function hydrateTableau(
     playerId,
     rowId: "oasisEdgeRow",
   });
+  const canopy = hydrateCardIds(tableau.canopyRow ?? [], {
+    source: "tableau",
+    playerId,
+  });
   return {
     tableau: {
       understoryRow: understory.cards,
       oasisEdgeRow: oasisEdge.cards,
+      canopyRow: canopy.cards,
     },
-    diagnostics: [...understory.diagnostics, ...oasisEdge.diagnostics],
+    diagnostics: [...understory.diagnostics, ...oasisEdge.diagnostics, ...canopy.diagnostics],
   };
 }
 
