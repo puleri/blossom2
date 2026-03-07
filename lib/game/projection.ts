@@ -17,6 +17,7 @@ export type ProjectedTurnGameState = {
   lastAction?: TurnGameState["lastAction"];
   deckCount: number;
   tray: Card[];
+  foodCache: number[];
   players: Record<string, ProjectedPlayerState>;
 };
 
@@ -45,6 +46,7 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
     lastAction: state.lastAction,
     deckCount: state.deck.length,
     tray: state.tray,
+    foodCache: state.foodCache,
     players,
   };
 }
