@@ -1,7 +1,7 @@
 import { deterministicShuffle } from "./shuffle";
 import { EXPANDED_DECK } from "./cards";
 import { aggregateFinalScoring, determineWinnerId } from "./scoring";
-import { ACTION_TYPES, BIOME_METADATA, FOOD_TOKEN_TYPES, type ActionType, type ActivationRowId, type CardId, type FoodToken, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
+import { ACTION_TYPES, BIOME_METADATA, FOOD_TOKEN_TYPES, type ActionType, type ActivationRowId, type CardId, type TableauRowId, type FoodToken, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
 
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
 const TRAY_SIZE = 3;
@@ -16,14 +16,15 @@ function rollFoodCache(count = FOOD_TOKEN_COUNT): FoodToken[] {
   return Array.from({ length: count }, () => rollFoodToken());
 }
 
-function createEmptyTableau(): Record<ActivationRowId, CardId[]> {
+function createEmptyTableau(): Record<TableauRowId, CardId[]> {
   return {
     understoryRow: [],
     oasisEdgeRow: [],
+    canopyRow: [],
   };
 }
 
-export function initialTableauByPlayerId(playerIds: string[]): Record<string, Record<ActivationRowId, CardId[]>> {
+export function initialTableauByPlayerId(playerIds: string[]): Record<string, Record<TableauRowId, CardId[]>> {
   return Object.fromEntries(playerIds.map((playerId) => [playerId, createEmptyTableau()]));
 }
 

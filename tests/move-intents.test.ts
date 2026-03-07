@@ -45,6 +45,8 @@ describe("applyMoveIntent", () => {
     const totalCards = game.deck.length + game.tray.length + dealtCards;
     expect(totalCards).toBeGreaterThan(8);
     expect(game.deck).toHaveLength(totalCards - dealtCards - game.tray.length);
+    expect(game.tableauByPlayerId.p1.canopyRow).toEqual([]);
+    expect(game.tableauByPlayerId.p2.canopyRow).toEqual([]);
   });
 
   it("returns NOT_YOUR_TURN when actor is not active player", () => {
