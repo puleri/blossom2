@@ -1,4 +1,4 @@
-import type { ActivationRowId, Card, PlayerIdentity, TurnGameState } from "../types";
+import type { ActivationRowId, Card, FoodToken, PlayerIdentity, TurnGameState } from "../types";
 
 export type ProjectedPlayerState = {
   identity: PlayerIdentity;
@@ -17,7 +17,7 @@ export type ProjectedTurnGameState = {
   lastAction?: TurnGameState["lastAction"];
   deckCount: number;
   tray: Card[];
-  foodCache: number[];
+  foodCache: FoodToken[];
   players: Record<string, ProjectedPlayerState>;
 };
 

@@ -35,7 +35,7 @@ describe("createGame deck setup", () => {
     expect(total).toBe(EXPANDED_DECK.length);
   });
 
-  it("rolls five d5 food tokens during setup", () => {
+  it("rolls five letter food tokens during setup", () => {
     const players = [
       { id: "p1", name: "P1" },
       { id: "p2", name: "P2" },
@@ -44,7 +44,7 @@ describe("createGame deck setup", () => {
     const game = createGame("g1", players, 42);
 
     expect(game.foodCache).toHaveLength(5);
-    expect(game.foodCache.every((token) => token >= 1 && token <= 5)).toBe(true);
+    expect(game.foodCache.every((token) => ["W", "M", "C", "T", "P"].includes(token))).toBe(true);
   });
 
   it("automatically rerolls food when the cache is empty", () => {
@@ -57,7 +57,7 @@ describe("createGame deck setup", () => {
 
     const next = endTurn({ ...game, foodCache: [] });
 
-    expect(next.foodCache).toEqual([1, 1, 1, 1, 1]);
+    expect(next.foodCache).toEqual(["W", "W", "W", "W", "W"]);
     randomSpy.mockRestore();
   });
 });

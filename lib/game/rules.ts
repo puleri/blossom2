@@ -1,19 +1,18 @@
 import { deterministicShuffle } from "./shuffle";
 import { EXPANDED_DECK } from "./cards";
 import { aggregateFinalScoring, determineWinnerId } from "./scoring";
-import { ACTION_TYPES, BIOME_METADATA, type ActionType, type ActivationRowId, type Card, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
+import { ACTION_TYPES, BIOME_METADATA, FOOD_TOKEN_TYPES, type ActionType, type ActivationRowId, type Card, type FoodToken, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
 
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
 const TRAY_SIZE = 3;
 const OPENING_HAND_SIZE = 2;
 const FOOD_TOKEN_COUNT = 5;
-const FOOD_DIE_SIDES = 5;
-
-function rollFoodToken(): number {
-  return Math.floor(Math.random() * FOOD_DIE_SIDES) + 1;
+function rollFoodToken(): FoodToken {
+  const index = Math.floor(Math.random() * FOOD_TOKEN_TYPES.length);
+  return FOOD_TOKEN_TYPES[index] ?? FOOD_TOKEN_TYPES[0];
 }
 
-function rollFoodCache(count = FOOD_TOKEN_COUNT): number[] {
+function rollFoodCache(count = FOOD_TOKEN_COUNT): FoodToken[] {
   return Array.from({ length: count }, () => rollFoodToken());
 }
 
