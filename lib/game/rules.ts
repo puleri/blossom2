@@ -139,7 +139,7 @@ export function playCardToRow(
 
   const nextHand = hand.filter((_, index) => index !== handIndex);
   const playerTableau = game.tableauByPlayerId[playerId] ?? initialTableauByPlayerId([playerId])[playerId];
-  const nextRow = [card, ...(playerTableau[rowId] ?? [])];
+  const nextRow = [...(playerTableau[rowId] ?? []), card];
 
   return {
     card,
