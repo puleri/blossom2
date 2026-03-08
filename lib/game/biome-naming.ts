@@ -5,6 +5,7 @@ import {
   type ActivationOrder,
   type ActivationRowId,
   type Biome,
+  type TableauRowId,
 } from "../types";
 
 const BIOME_ALIASES: Record<string, Biome> = {
@@ -41,7 +42,7 @@ export function biomeForRow(rowId: ActivationRowId): Biome {
   return ACTIVATION_ROW_METADATA[rowId].biome;
 }
 
-export function rowIdForBiome(biome: Biome): ActivationRowId | null {
+export function rowIdForBiome(biome: Biome): TableauRowId {
   return BIOME_METADATA[biome].rowId;
 }
 

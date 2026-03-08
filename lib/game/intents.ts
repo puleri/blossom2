@@ -1,9 +1,9 @@
 import { endTurn, playCardToRow } from "./rules";
-import type { ActivationRowId, TurnGameState } from "../types";
+import type { TableauRowId, TurnGameState } from "../types";
 
 export type MoveIntent = {
   cardId: string;
-  rowId: ActivationRowId;
+  rowId: TableauRowId;
   expectedTurn: number;
   expectedActionCounter: number;
 };
