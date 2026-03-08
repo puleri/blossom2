@@ -190,8 +190,8 @@ export const ACTIVATION_ROW_METADATA: Record<ActivationRowId, ActivationRowMetad
   },
 };
 
-export const BIOME_METADATA: Record<Biome, { displayName: string; rowId: ActivationRowId | null }> = {
-  canopy: { displayName: "Canopy", rowId: null },
+export const BIOME_METADATA: Record<Biome, { displayName: string; rowId: TableauRowId }> = {
+  canopy: { displayName: "Canopy", rowId: "canopyRow" },
   understory: { displayName: "Understory", rowId: "understoryRow" },
   oasisEdge: { displayName: "Oasis Edge", rowId: "oasisEdgeRow" },
 };

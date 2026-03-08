@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyMoveIntent } from "../lib/game/intents";
 import { EXPANDED_DECK } from "../lib/game/cards";
 import { createGame, takeTrayCard } from "../lib/game/rules";
-import { BIOME_METADATA, type ActivationRowId, type Card, type CardId } from "../lib/types";
+import { BIOME_METADATA, type Card, type CardId, type TableauRowId } from "../lib/types";
 
 function cardById(cardId: CardId): Card {
   const card = EXPANDED_DECK.find((candidate) => candidate.id === cardId);
@@ -13,13 +13,9 @@ function cardById(cardId: CardId): Card {
   return card;
 }
 
-function rowForCard(cardId: CardId): ActivationRowId {
+function rowForCard(cardId: CardId): TableauRowId {
   const card = cardById(cardId);
   const rowId = BIOME_METADATA[card.biomes[0] ?? "canopy"].rowId;
-  if (!rowId) {
-    throw new Error("Card is not playable to an activation row in this test.");
-  }
-
   return rowId;
 }
 

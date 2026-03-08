@@ -1,7 +1,7 @@
 import { deterministicShuffle } from "./shuffle";
 import { EXPANDED_DECK } from "./cards";
 import { aggregateFinalScoring, determineWinnerId } from "./scoring";
-import { ACTION_TYPES, BIOME_METADATA, FOOD_TOKEN_TYPES, type ActionType, type ActivationRowId, type CardId, type TableauRowId, type FoodToken, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
+import { ACTION_TYPES, BIOME_METADATA, FOOD_TOKEN_TYPES, type ActionType, type CardId, type TableauRowId, type FoodToken, type GameState as ScoringGameState, type PlayerIdentity, type TurnGameState } from "../types";
 
 const TURN_ACTION_IDS = new Set<string>(ACTION_TYPES);
 const TRAY_SIZE = 3;
@@ -114,7 +114,7 @@ export function playCardToRow(
   game: TurnGameState,
   playerId: string,
   cardId: string,
-  rowId: ActivationRowId,
+  rowId: TableauRowId,
 ): { game: TurnGameState; card: CardId | null } {
   const hand = game.handsByPlayerId[playerId] ?? [];
   const handIndex = hand.findIndex((id) => id === cardId);

@@ -25,8 +25,8 @@ describe("biome/action canonical naming", () => {
     expect(rowDisplayName(rowId)).toBe("Oasis Edge");
   });
 
-  it("keeps grow placement targeting the Canopy biome", () => {
-    expect(rowIdForBiome("canopy")).toBeNull();
+  it("maps canopy biome to the canopy tableau row", () => {
+    expect(rowIdForBiome("canopy")).toBe("canopyRow");
     expect(biomeLabel("canopy")).toBe("Canopy");
   });
 });
