@@ -18,6 +18,21 @@ const TABLEAU_ROW_LABELS: Record<TableauRowId, string> = {
   canopyRow: "Canopy",
 };
 
+const BIOME_MODAL_CONTENT: Record<TableauRowId, { heading: string; description: string }> = {
+  canopyRow: {
+    heading: "To the Sun",
+    description: "Gain 1 Sun Token",
+  },
+  understoryRow: {
+    heading: "Root",
+    description: "Gain 1 food from the cache",
+  },
+  oasisEdgeRow: {
+    heading: "Pollinate",
+    description: "Draw 1 plant card",
+  },
+};
+
 const TABLEAU_ROW_DISPLAY_ORDER: TableauRowId[] = ["oasisEdgeRow", "understoryRow", "canopyRow"];
 
 type RoomStatus = "lobby" | "in_game" | "finished";
@@ -84,6 +99,8 @@ export default function OasisGamePage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [hoveredBiome, setHoveredBiome] = useState<TableauRowId | null>(null);
+  const [clickedBiome, setClickedBiome] = useState<TableauRowId | null>(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -285,7 +302,31 @@ export default function OasisGamePage() {
 
                       return (
                         <div key={rowId} className="activation-row-card">
-                          <p className="activation-row-title">{TABLEAU_ROW_LABELS[rowId]}</p>
+                          <div className="activation-row-title-wrap">
+                            <p className="activation-row-title">{TABLEAU_ROW_LABELS[rowId]}</p>
+                            <button
+                              type="button"
+                              className="biome-modal-trigger"
+                              onMouseEnter={() => setHoveredBiome(rowId)}
+                              onMouseLeave={() => setHoveredBiome((value) => (value === rowId ? null : value))}
+                              onClick={() => setClickedBiome((value) => (value === rowId ? null : rowId))}
+                              aria-label={`Show ${TABLEAU_ROW_LABELS[rowId]} biome details`}
+                            >
+                              ℹ
+                            </button>
+                          </div>
+                          {hoveredBiome === rowId || clickedBiome === rowId ? (
+                            <div
+                              className="biome-modal"
+                              role="dialog"
+                              aria-label={`${TABLEAU_ROW_LABELS[rowId]} biome effect`}
+                              onMouseEnter={() => setHoveredBiome(rowId)}
+                              onMouseLeave={() => setHoveredBiome((value) => (value === rowId ? null : value))}
+                            >
+                              <p className="biome-modal-heading">{BIOME_MODAL_CONTENT[rowId].heading}</p>
+                              <p className="biome-modal-description">{BIOME_MODAL_CONTENT[rowId].description}</p>
+                            </div>
+                          ) : null}
                           <p className="activation-row-hint">
                             Drop a matching card here
                           </p>

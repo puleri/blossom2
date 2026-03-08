@@ -144,7 +144,40 @@ describe("applyMoveIntent", () => {
       expect(result.actionCounter).toBe(1);
       expect(result.state.handsByPlayerId.p1.length).toBe(game.handsByPlayerId.p1.length - 1);
       const targetRowId = rowForCard(game.handsByPlayerId.p1[0]);
-      expect(result.state.tableauByPlayerId.p1[targetRowId][0]).toBe(game.handsByPlayerId.p1[0]);
+      const targetRow = result.state.tableauByPlayerId.p1[targetRowId];
+      expect(targetRow[targetRow.length - 1]).toBe(game.handsByPlayerId.p1[0]);
+    }
+  });
+
+  it("adds played cards to the bottom of an occupied row", () => {
+    const cardId = game.handsByPlayerId.p1[0];
+    const rowId = rowForCard(cardId);
+    const gameWithExistingRow = {
+      ...game,
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          [rowId]: ["c0", "c1"],
+        },
+      },
+    };
+
+    const result = applyMoveIntent(
+      gameWithExistingRow,
+      {
+        cardId,
+        rowId,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.tableauByPlayerId.p1[rowId]).toEqual(["c0", "c1", cardId]);
     }
   });
 

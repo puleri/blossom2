@@ -17,14 +17,60 @@ pre { white-space: pre-wrap; }
 }
 
 .activation-row-card {
+  position: relative;
   border: 1px dashed #bbb;
   border-radius: 6px;
   padding: 8px;
 }
 
+.activation-row-title-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .activation-row-title {
   margin: 0;
   font-weight: 700;
+}
+
+.biome-modal-trigger {
+  background: transparent;
+  border: 1px solid #64748b;
+  border-radius: 999px;
+  color: #e2e8f0;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.biome-modal {
+  position: absolute;
+  top: 34px;
+  left: 8px;
+  right: 8px;
+  z-index: 3;
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  background: #0b1120;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.biome-modal-heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.biome-modal-description {
+  margin: 0;
+  font-size: 12px;
+  color: #cbd5e1;
 }
 
 .activation-row-hint {
