@@ -9,7 +9,7 @@ A Next.js + Firestore live prototype for a **Wingspan-style reskin** using the e
   - **Oasis Edge** → To the Sun activation row
   - **Meadow** → Pollinate activation row
   - **Canopy** → Placement biome
-- **Resources:** water, compost, pollinator, mineral
+- **Resources:** water, compost, pollinator, mineral, trellis
 - **Growth:** sunlight tokens and maturity triggers
 
 ### Naming conventions
@@ -24,7 +24,6 @@ A Next.js + Firestore live prototype for a **Wingspan-style reskin** using the e
 ## Implemented in this scaffold
 - Turn skeleton with actions: Grow, Root, To the Sun, Pollinate
 - Right-to-left row activation for action powers
-- Maturity trigger support (`onMature` fire-once flag)
 - Starter card set as data (`lib/game/cards.ts`)
 - Power DSL schema draft (`docs/power-dsl.schema.json`)
 - Vitest rules tests

@@ -4,7 +4,7 @@
   "type": "object",
   "required": ["trigger", "effects"],
   "properties": {
-    "trigger": { "enum": ["onPlay", "onMature", "onActivate"] },
+    "trigger": { "enum": ["onPlay", "onActivate"] },
     "action": { "enum": ["root", "toTheSun", "pollinate"] },
     "effects": {
       "type": "array",
@@ -21,7 +21,6 @@
               "drawCards",
               "tuckCards",
               "discardCards",
-              "scorePoints",
               "if",
               "choice"
             ]

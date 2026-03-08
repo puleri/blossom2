@@ -17,7 +17,7 @@ export type ActivationRowId = (typeof ACTIVATION_ROW_IDS)[number];
 export const TABLEAU_ROW_IDS = ["understoryRow", "oasisEdgeRow", "canopyRow"] as const;
 export type TableauRowId = (typeof TABLEAU_ROW_IDS)[number];
 
-export type Trigger = "onPlay" | "onMature" | "onActivate";
+export type Trigger = "onPlay"| "onActivate";
 export type ActivateAction = "root" | "toTheSun" | "pollinate";
 
 export type ConditionOperator = "==" | "!=" | ">" | ">=" | "<" | "<=";
@@ -36,7 +36,6 @@ export type Effect =
   | { type: "drawCards"; amount: number }
   | { type: "tuckCards"; amount: number }
   | { type: "discardCards"; amount: number }
-  | { type: "scorePoints"; amount: number }
   | { type: "if"; condition: Condition; then: Effect[]; else?: Effect[] }
   | { type: "choice"; options: Array<{ label: string; effects: Effect[] }> };
 
@@ -100,7 +99,6 @@ export type PlantDefinition = {
   maxSunTokens: number;
   biomes: Biome[];
   onPlay?: Power;
-  onMature?: Power;
   onActivate?: ActivationAbility;
   // Legacy fields kept for compatibility with existing setup/DSL tests.
   biome?: Biome;

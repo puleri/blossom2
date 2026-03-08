@@ -43,9 +43,6 @@ function executeEffect(context: ExecutionContext, effect: Effect): void {
     case "discardCards":
       moveCards(context.state.hand, context.state.discard, effect.amount);
       return;
-    case "scorePoints":
-      context.state.score += effect.amount;
-      return;
     case "if": {
       const branch = evaluateCondition(context.conditionValues, effect.condition) ? effect.then : (effect.else ?? []);
       executeEffects(context, branch);

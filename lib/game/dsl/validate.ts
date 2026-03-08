@@ -34,9 +34,6 @@ function validateEffect(effect: unknown, path: string): void {
     case "drawCards":
     case "tuckCards":
     case "discardCards":
-    case "scorePoints":
-      validatePositiveInt((effect as { amount?: unknown }).amount, `${path}.amount`);
-      return;
     case "if": {
       const ifEffect = effect as { condition?: unknown; then?: unknown; else?: unknown };
       validateCondition(ifEffect.condition, `${path}.condition`);

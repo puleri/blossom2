@@ -47,12 +47,6 @@ describe("opcode execution", () => {
     const state = makeState();
     const effects: Effect[] = [
       {
-        type: "if",
-        condition: { left: "sunlight", operator: ">=", right: 1 },
-        then: [{ type: "scorePoints", amount: 2 }],
-        else: [{ type: "scorePoints", amount: 1 }],
-      },
-      {
         type: "choice",
         options: [
           { label: "gain water", effects: [{ type: "gainResource", resource: "water", amount: 1 }] },

@@ -1,7 +1,7 @@
 import { validatePowerDsl } from "./dsl/validate";
 import type { PlantDefinition, Trigger } from "../types";
 
-const VALID_TRIGGER_TYPES = new Set<Trigger>(["onPlay", "onActivate", "onMature"]);
+const VALID_TRIGGER_TYPES = new Set<Trigger>(["onPlay", "onActivate"]);
 
 export function validateCardDefinitions(cards: PlantDefinition[]): void {
   for (const card of cards) {
