@@ -43,6 +43,15 @@ pre { white-space: pre-wrap; }
   border-color: #38bdf8;
 }
 
+.deck-pile-panel {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: auto;
+  margin: 0;
+  z-index: 30;
+}
+
 .activation-row-title-wrap {
   display: flex;
   align-items: center;
