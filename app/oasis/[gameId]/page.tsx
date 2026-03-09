@@ -185,10 +185,23 @@ export default function OasisGamePage() {
   const gameState = room?.game?.state ?? null;
   const isInGame = room?.status === "in_game" && room.game?.phase === "inProgress" && Boolean(gameState);
   const currentPlayerState = currentUid && gameState ? gameState.players[currentUid] : null;
+  const currentPlayerFoodCounts = useMemo(() => {
+    if (!currentPlayerState?.food?.length) {
+      return [] as Array<[string, number]>;
+    }
+
+    const counts = new Map<string, number>();
+    for (const token of currentPlayerState.food) {
+      counts.set(token, (counts.get(token) ?? 0) + 1);
+    }
+
+    return Array.from(counts.entries());
+  }, [currentPlayerState?.food]);
   const displayPlayerOrder = useMemo(
     () => getDisplayPlayerOrder(gameState?.playerOrder ?? [], currentUid),
     [currentUid, gameState?.playerOrder],
   );
+  const currentPlayerHand = currentPlayerState?.hand ?? [];
 
   const handlePlayCard = async (cardId: string, rowId: TableauRowId) => {
     if (!gameState || !room?.game || isSubmitting || currentUid !== gameState.currentPlayerId) {
@@ -440,13 +453,24 @@ export default function OasisGamePage() {
             })}
           </section>
 
+          {currentPlayerFoodCounts.length ? (
+            <aside className="player-food-panel" aria-label="Your food tokens">
+              {currentPlayerFoodCounts.map(([token, count]) => (
+                <p key={token} className="player-food-item">
+                  <span className="player-food-token">{token}</span>
+                  <span>x{count}</span>
+                </p>
+              ))}
+            </aside>
+          ) : null}
+
           <section className="player-hand-panel" aria-label="Your hand">
             <h3>Your hand</h3>
             <p className="player-hand-empty">Drag a card to one of your rows to play it. Playing a card ends your turn.</p>
-            {currentPlayerState?.hand?.length ? (
+            {currentPlayerHand.length ? (
               <div className="player-hand-scroll">
-                {currentPlayerState.hand.map((card, index) => {
-                  const totalCards = currentPlayerState.hand.length;
+                {currentPlayerHand.map((card, index) => {
+                  const totalCards = currentPlayerHand.length;
                   const handWidthPercent = 100;
                   const cardWidthPercent = 22;
                   const maxOffsetPercent = Math.max(0, handWidthPercent - cardWidthPercent);
@@ -461,8 +485,8 @@ export default function OasisGamePage() {
                         left: `${leftPercent}%`,
                         zIndex:
                           hoveredHandCardId === card.id
-                            ? currentPlayerState.hand.length + 1
-                            : currentPlayerState.hand.length - index,
+                            ? currentPlayerHand.length + 1
+                            : currentPlayerHand.length - index,
                       }}
                       draggable={currentUid === gameState.currentPlayerId && !isSubmitting}
                       onMouseEnter={() => setHoveredHandCardId(card.id)}

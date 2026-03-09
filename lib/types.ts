@@ -122,6 +122,7 @@ export type TurnGameState = {
   deck: CardId[];
   tray: CardId[];
   foodCache: FoodToken[];
+  foodByPlayerId?: Record<string, FoodToken[]>;
   lastAction?: ActionType;
 };
 
