@@ -28,6 +28,11 @@ pre { white-space: pre-wrap; }
   box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45), 0 0 14px rgba(56, 189, 248, 0.3);
 }
 
+.activation-row-card.is-food-cache-glowing {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 0 14px rgba(245, 158, 11, 0.32);
+}
+
 .deck-pile-button {
   width: 100%;
   margin-top: 6px;
@@ -130,6 +135,11 @@ pre { white-space: pre-wrap; }
   border-radius: 10px;
   padding: 10px;
   z-index: 30;
+}
+
+.food-cache-panel.is-glowing {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 0 14px rgba(245, 158, 11, 0.32);
 }
 
 .food-cache-title {
