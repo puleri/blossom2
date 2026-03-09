@@ -103,6 +103,7 @@ export default function OasisGamePage() {
   const [clickedBiome, setClickedBiome] = useState<TableauRowId | null>(null);
   const [deckPileHoverPlayerId, setDeckPileHoverPlayerId] = useState<string | null>(null);
   const [foodCacheHoverPlayerId, setFoodCacheHoverPlayerId] = useState<string | null>(null);
+  const [sunHoverPlayerId, setSunHoverPlayerId] = useState<string | null>(null);
   const [hoveredHandCardId, setHoveredHandCardId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -309,6 +310,16 @@ export default function OasisGamePage() {
             Deck pile
           </button>
 
+          <button
+            type="button"
+            className="sun-icon-button"
+            aria-label="Sun"
+            onMouseEnter={() => setSunHoverPlayerId(currentUid)}
+            onMouseLeave={() => setSunHoverPlayerId((value) => (value === currentUid ? null : value))}
+          >
+            ☀
+          </button>
+
           <h2>Game Board</h2>
           <p>
             Current player: <strong>{gameState.players[gameState.currentPlayerId]?.identity.name ?? gameState.currentPlayerId}</strong>
@@ -356,11 +367,12 @@ export default function OasisGamePage() {
 
                       const isDeckGlowRow = rowId === "oasisEdgeRow" && deckPileHoverPlayerId === playerId;
                       const isFoodCacheGlowRow = rowId === "understoryRow" && foodCacheHoverPlayerId === playerId;
+                      const isSunGlowRow = rowId === "canopyRow" && sunHoverPlayerId === playerId;
 
                       return (
                         <div
                           key={rowId}
-                          className={`activation-row-card ${isDeckGlowRow ? "is-glowing" : ""} ${isFoodCacheGlowRow ? "is-food-cache-glowing" : ""}`}
+                          className={`activation-row-card ${isDeckGlowRow ? "is-glowing" : ""} ${isFoodCacheGlowRow ? "is-food-cache-glowing" : ""} ${isSunGlowRow ? "is-sun-glowing" : ""}`}
                         >
                           <div className="activation-row-title-wrap">
                             <p className="activation-row-title">{TABLEAU_ROW_LABELS[rowId]}</p>
