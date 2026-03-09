@@ -49,6 +49,7 @@ describe("applyMoveIntent", () => {
     const result = applyMoveIntent(
       game,
       {
+        type: "playCard",
         cardId: game.handsByPlayerId.p1[0],
         rowId: rowForCard(game.handsByPlayerId.p1[0]),
         expectedTurn: 1,
@@ -68,6 +69,7 @@ describe("applyMoveIntent", () => {
     const result = applyMoveIntent(
       game,
       {
+        type: "playCard",
         cardId: game.handsByPlayerId.p1[0],
         rowId: rowForCard(game.handsByPlayerId.p1[0]),
         expectedTurn: 1,
@@ -90,6 +92,7 @@ describe("applyMoveIntent", () => {
     const result = applyMoveIntent(
       game,
       {
+        type: "playCard",
         cardId: intentCardId,
         rowId: rowForCard(intentCardId),
         expectedTurn: 1,
@@ -109,6 +112,7 @@ describe("applyMoveIntent", () => {
     const result = applyMoveIntent(
       game,
       {
+        type: "playCard",
         cardId: "unknown-card-id",
         rowId: "understoryRow",
         expectedTurn: 1,
@@ -128,6 +132,7 @@ describe("applyMoveIntent", () => {
     const result = applyMoveIntent(
       game,
       {
+        type: "playCard",
         cardId: game.handsByPlayerId.p1[0],
         rowId: rowForCard(game.handsByPlayerId.p1[0]),
         expectedTurn: 1,
@@ -166,6 +171,7 @@ describe("applyMoveIntent", () => {
     const result = applyMoveIntent(
       gameWithExistingRow,
       {
+        type: "playCard",
         cardId,
         rowId,
         expectedTurn: 1,
@@ -181,6 +187,52 @@ describe("applyMoveIntent", () => {
     }
   });
 
+
+  it("draws a card into the active player's hand without ending turn", () => {
+    const result = applyMoveIntent(
+      game,
+      {
+        type: "drawCard",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.handsByPlayerId.p1.length).toBe(game.handsByPlayerId.p1.length + 1);
+      expect(result.state.deck.length).toBe(game.deck.length - 1);
+      expect(result.state.currentPlayerId).toBe("p1");
+      expect(result.state.turn).toBe(1);
+      expect(result.actionCounter).toBe(1);
+    }
+  });
+
+  it("rejects draw card when the deck is empty", () => {
+    const emptyDeckGame = {
+      ...game,
+      deck: [],
+    };
+
+    const result = applyMoveIntent(
+      emptyDeckGame,
+      {
+        type: "drawCard",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("INVALID_ACTION");
+    }
+  });
+
   it("supports solo games by keeping turn control with the same player", () => {
     const soloGame = createGame(
       "solo-game",
@@ -191,6 +243,7 @@ describe("applyMoveIntent", () => {
     const result = applyMoveIntent(
       soloGame,
       {
+        type: "playCard",
         cardId: soloGame.handsByPlayerId.solo[0],
         rowId: rowForCard(soloGame.handsByPlayerId.solo[0]),
         expectedTurn: 1,

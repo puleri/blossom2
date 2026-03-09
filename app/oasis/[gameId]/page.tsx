@@ -101,6 +101,7 @@ export default function OasisGamePage() {
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [hoveredBiome, setHoveredBiome] = useState<TableauRowId | null>(null);
   const [clickedBiome, setClickedBiome] = useState<TableauRowId | null>(null);
+  const [deckPileHoverPlayerId, setDeckPileHoverPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -201,6 +202,7 @@ export default function OasisGamePage() {
         setRoom(optimisticRoom);
       }
       const result = await submitMoveIntent(gameId, {
+        type: "playCard",
         cardId,
         rowId,
         expectedTurn: gameState.turn,
@@ -224,6 +226,33 @@ export default function OasisGamePage() {
     } finally {
       setIsSubmitting(false);
       setDraggedCardId(null);
+    }
+  };
+
+  const handleDrawCard = async () => {
+    if (!gameState || !room?.game || isSubmitting || !currentUid || currentUid !== gameState.currentPlayerId) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const result = await submitMoveIntent(gameId, {
+        type: "drawCard",
+        expectedTurn: gameState.turn,
+        expectedActionCounter: room.game.actionCounter,
+      });
+
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+
+      setStatus("Card drawn.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to draw card.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -300,8 +329,10 @@ export default function OasisGamePage() {
                         canDropHere && isPlayableRow ? "is-droppable" : ""
                       } ${draggedCardId && isPlayableRow ? "is-drag-over" : ""}`;
 
+                      const isDeckGlowRow = rowId === "oasisEdgeRow" && deckPileHoverPlayerId === playerId;
+
                       return (
-                        <div key={rowId} className="activation-row-card">
+                        <div key={rowId} className={`activation-row-card ${isDeckGlowRow ? "is-glowing" : ""}`}>
                           <div className="activation-row-title-wrap">
                             <p className="activation-row-title">{TABLEAU_ROW_LABELS[rowId]}</p>
                             <button
@@ -330,6 +361,24 @@ export default function OasisGamePage() {
                           <p className="activation-row-hint">
                             Drop a matching card here
                           </p>
+                          {rowId === "oasisEdgeRow" ? (
+                            <button
+                              type="button"
+                              className="deck-pile-button"
+                              onMouseEnter={() => setDeckPileHoverPlayerId(playerId)}
+                              onMouseLeave={() => setDeckPileHoverPlayerId((value) => (value === playerId ? null : value))}
+                              onClick={() => {
+                                if (playerId !== currentUid) {
+                                  return;
+                                }
+                                void handleDrawCard();
+                              }}
+                              disabled={playerId !== currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
+                              aria-label="Draw a card from the deck"
+                            >
+                              Deck pile
+                            </button>
+                          ) : null}
                           <div
                             className={dropzoneClassName}
                             onDragOver={(event) => {

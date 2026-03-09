@@ -1,12 +1,19 @@
-import { endTurn, playCardToRow } from "./rules";
+import { drawDeckCardToHand, endTurn, playCardToRow } from "./rules";
 import type { TableauRowId, TurnGameState } from "../types";
 
-export type MoveIntent = {
-  cardId: string;
-  rowId: TableauRowId;
-  expectedTurn: number;
-  expectedActionCounter: number;
-};
+export type MoveIntent =
+  | {
+      type: "playCard";
+      cardId: string;
+      rowId: TableauRowId;
+      expectedTurn: number;
+      expectedActionCounter: number;
+    }
+  | {
+      type: "drawCard";
+      expectedTurn: number;
+      expectedActionCounter: number;
+    };
 
 export type MoveErrorCode = "NOT_YOUR_TURN" | "INVALID_ACTION" | "STALE_STATE";
 
@@ -50,23 +57,43 @@ export function applyMoveIntent(
     };
   }
 
-  const played = playCardToRow(state, actorUid, intent.cardId, intent.rowId);
+  if (intent.type === "playCard") {
+    const played = playCardToRow(state, actorUid, intent.cardId, intent.rowId);
 
-  if (!played.card) {
+    if (!played.card) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "Unable to play card to that row.",
+        },
+      };
+    }
+
+    const nextState = endTurn(played.game);
+
+    return {
+      ok: true,
+      state: nextState,
+      actionCounter: currentActionCounter + 1,
+    };
+  }
+
+  const drawn = drawDeckCardToHand(state, actorUid);
+
+  if (!drawn.card) {
     return {
       ok: false,
       error: {
         code: "INVALID_ACTION",
-        message: "Unable to play card to that row.",
+        message: "Unable to draw a card.",
       },
     };
   }
 
-  const nextState = endTurn(played.game);
-
   return {
     ok: true,
-    state: nextState,
+    state: drawn.game,
     actionCounter: currentActionCounter + 1,
   };
 }
