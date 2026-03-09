@@ -160,6 +160,30 @@ export function playCardToRow(
   };
 }
 
+export function drawDeckCardToHand(
+  game: TurnGameState,
+  playerId: string,
+): { game: TurnGameState; card: CardId | null } {
+  const card = game.deck[0] ?? null;
+  if (!card) {
+    return { game, card: null };
+  }
+
+  const hand = game.handsByPlayerId[playerId] ?? [];
+
+  return {
+    card,
+    game: {
+      ...game,
+      deck: game.deck.slice(1),
+      handsByPlayerId: {
+        ...game.handsByPlayerId,
+        [playerId]: [...hand, card],
+      },
+    },
+  };
+}
+
 export function getNextPlayerId(game: TurnGameState): string {
   const currentIndex = game.playerOrder.indexOf(game.currentPlayerId);
 
