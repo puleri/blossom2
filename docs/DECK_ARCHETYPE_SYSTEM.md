@@ -58,7 +58,6 @@ support
 payoff
 scorer
 enabler
-control
 swing
 ```
 
@@ -73,7 +72,7 @@ swing
 ### engine
 
 * Repeatable value generation
-* Usually activates each turn
+* Usually activates most turns
 * Moderate printed points
 
 ### ramp
@@ -85,30 +84,24 @@ swing
 
 * Improves other plants
 * Enhances biome or token interactions
+* ex. Repeat a power in this row.
 
 ### payoff
 
 * Weak alone
 * Strong when combined with supporting cards
 
-### scorer
-
-* Generates victory points directly
-* Often conditional
-
 ### enabler
 
 * Unlocks archetypes
 * Enables specific strategies
-
-### control
-
-* Disrupts or modifies board state
+* ex. Gain 2 water from the supply
 
 ### swing
 
 * High variance
 * Unpredictable but potentially powerful
+* ex. Discard 1 water and tuck two cards
 
 ---
 
@@ -288,14 +281,11 @@ water
 compost
 mineral
 trellis
-desert
 understory
 oasis
 spread
 engine
 conversion
-defense
-storm
 ```
 
 Example:
@@ -403,12 +393,11 @@ Legendary:   2–5%
 
 ```text
 Engine      30%
-Support     20%
-Enabler     15%
-Payoff      15%
+Support     25%
+Enabler     20%
+Payoff      10%
 Vanilla     10%
 Swing        5%
-Control      5%
 ```
 
 ---
@@ -431,7 +420,7 @@ Example:
 
 * common → vanilla, engine, support
 * rare → payoff, enabler
-* legendary → swing, explosive payoff
+* legendary → explosive payoff
 
 ---
 
