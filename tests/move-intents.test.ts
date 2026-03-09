@@ -233,6 +233,50 @@ describe("applyMoveIntent", () => {
     }
   });
 
+
+  it("takes a specific food token from cache into active player inventory", () => {
+    const tokenAtIndexOne = game.foodCache[1];
+    const result = applyMoveIntent(
+      game,
+      {
+        type: "takeFoodToken",
+        cacheIndex: 1,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.foodByPlayerId?.p1).toEqual([tokenAtIndexOne]);
+      expect(result.state.foodCache).toEqual(game.foodCache.filter((_, index) => index !== 1));
+      expect(result.state.currentPlayerId).toBe("p1");
+      expect(result.state.turn).toBe(1);
+      expect(result.actionCounter).toBe(1);
+    }
+  });
+
+  it("rejects taking a food token when cache index is out of bounds", () => {
+    const result = applyMoveIntent(
+      game,
+      {
+        type: "takeFoodToken",
+        cacheIndex: game.foodCache.length,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("INVALID_ACTION");
+    }
+  });
+
   it("supports solo games by keeping turn control with the same player", () => {
     const soloGame = createGame(
       "solo-game",

@@ -184,6 +184,36 @@ export function drawDeckCardToHand(
   };
 }
 
+export function takeFoodTokenToInventory(
+  game: TurnGameState,
+  playerId: string,
+  cacheIndex: number,
+): { game: TurnGameState; token: FoodToken | null } {
+  if (cacheIndex < 0 || cacheIndex >= game.foodCache.length) {
+    return { game, token: null };
+  }
+
+  const token = game.foodCache[cacheIndex] ?? null;
+  if (!token) {
+    return { game, token: null };
+  }
+
+  const nextFoodCache = game.foodCache.filter((_, index) => index !== cacheIndex);
+  const playerFood = game.foodByPlayerId?.[playerId] ?? [];
+
+  return {
+    token,
+    game: {
+      ...game,
+      foodCache: nextFoodCache,
+      foodByPlayerId: {
+        ...game.foodByPlayerId,
+        [playerId]: [...playerFood, token],
+      },
+    },
+  };
+}
+
 export function getNextPlayerId(game: TurnGameState): string {
   const currentIndex = game.playerOrder.indexOf(game.currentPlayerId);
 

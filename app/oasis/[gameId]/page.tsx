@@ -272,6 +272,34 @@ export default function OasisGamePage() {
     }
   };
 
+  const handleTakeFoodToken = async (cacheIndex: number) => {
+    if (!gameState || !room?.game || isSubmitting || !currentUid || currentUid !== gameState.currentPlayerId) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const result = await submitMoveIntent(gameId, {
+        type: "takeFoodToken",
+        cacheIndex,
+        expectedTurn: gameState.turn,
+        expectedActionCounter: room.game.actionCounter,
+      });
+
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+
+      setStatus("Food token taken.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to take food token.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <main className={isInGame ? "oasis-game-main with-hand-panel" : "oasis-game-main"}>
       <h1>Oasis Game: {gameId}</h1>
@@ -298,9 +326,18 @@ export default function OasisGamePage() {
             <p className="food-cache-title">Food cache</p>
             <div className="food-cache-tokens">
               {gameState.foodCache.map((value, index) => (
-                <span key={`food-token-${index}-${value}`} className="food-cache-token">
+                <button
+                  key={`food-token-${index}-${value}`}
+                  type="button"
+                  className="food-cache-token"
+                  onClick={() => {
+                    void handleTakeFoodToken(index);
+                  }}
+                  disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
+                  aria-label={`Take ${value} food token`}
+                >
                   {value}
-                </span>
+                </button>
               ))}
             </div>
           </aside>
