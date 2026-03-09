@@ -1,4 +1,4 @@
-import { drawDeckCardToHand, endTurn, playCardToRow } from "./rules";
+import { drawDeckCardToHand, endTurn, playCardToRow, takeFoodTokenToInventory } from "./rules";
 import type { TableauRowId, TurnGameState } from "../types";
 
 export type MoveIntent =
@@ -11,6 +11,12 @@ export type MoveIntent =
     }
   | {
       type: "drawCard";
+      expectedTurn: number;
+      expectedActionCounter: number;
+    }
+  | {
+      type: "takeFoodToken";
+      cacheIndex: number;
       expectedTurn: number;
       expectedActionCounter: number;
     };
@@ -75,6 +81,27 @@ export function applyMoveIntent(
     return {
       ok: true,
       state: nextState,
+      actionCounter: currentActionCounter + 1,
+    };
+  }
+
+
+  if (intent.type === "takeFoodToken") {
+    const taken = takeFoodTokenToInventory(state, actorUid, intent.cacheIndex);
+
+    if (!taken.token) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "Unable to take that food token.",
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      state: taken.game,
       actionCounter: currentActionCounter + 1,
     };
   }

@@ -192,7 +192,14 @@ pre { white-space: pre-wrap; }
   border-radius: 999px;
   border: 1px solid #4b5563;
   background: #1f2937;
+  color: inherit;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.food-cache-token:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .player-hand-panel {
