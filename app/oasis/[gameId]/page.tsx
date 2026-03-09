@@ -432,10 +432,11 @@ export default function OasisGamePage() {
             <p className="player-hand-empty">Drag a card to one of your rows to play it. Playing a card ends your turn.</p>
             {currentPlayerState?.hand?.length ? (
               <div className="player-hand-scroll">
-                {currentPlayerState.hand.map((card) => (
+                {currentPlayerState.hand.map((card, index) => (
                   <article
                     key={card.id}
                     className="player-hand-card"
+                    style={{ zIndex: currentPlayerState.hand.length - index }}
                     draggable={currentUid === gameState.currentPlayerId && !isSubmitting}
                     onDragStart={(event) => {
                       event.dataTransfer.setData("text/plain", card.id);
