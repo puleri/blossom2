@@ -56,7 +56,7 @@ export const EXPANDED_DECK: PlantDefinition[] = [
       "mineral": 1,
       "trellis": 1
     },
-    "points": 4,
+    "points": 9,
     "maxSunTokens": 5,
     "biomes": [
       "canopy",
