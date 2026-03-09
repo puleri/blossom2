@@ -284,6 +284,24 @@ export default function OasisGamePage() {
             </div>
           </aside>
 
+          <button
+            type="button"
+            className="deck-pile-button deck-pile-panel"
+            onMouseEnter={() => setDeckPileHoverPlayerId(currentUid)}
+            onMouseLeave={() => setDeckPileHoverPlayerId((value) => (value === currentUid ? null : value))}
+            onClick={() => {
+              if (!currentUid) {
+                return;
+              }
+
+              void handleDrawCard();
+            }}
+            disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
+            aria-label="Draw a card from the deck"
+          >
+            Deck pile
+          </button>
+
           <h2>Game Board</h2>
           <p>
             Current player: <strong>{gameState.players[gameState.currentPlayerId]?.identity.name ?? gameState.currentPlayerId}</strong>
@@ -361,24 +379,6 @@ export default function OasisGamePage() {
                           <p className="activation-row-hint">
                             Drop a matching card here
                           </p>
-                          {rowId === "oasisEdgeRow" ? (
-                            <button
-                              type="button"
-                              className="deck-pile-button"
-                              onMouseEnter={() => setDeckPileHoverPlayerId(playerId)}
-                              onMouseLeave={() => setDeckPileHoverPlayerId((value) => (value === playerId ? null : value))}
-                              onClick={() => {
-                                if (playerId !== currentUid) {
-                                  return;
-                                }
-                                void handleDrawCard();
-                              }}
-                              disabled={playerId !== currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
-                              aria-label="Draw a card from the deck"
-                            >
-                              Deck pile
-                            </button>
-                          ) : null}
                           <div
                             className={dropzoneClassName}
                             onDragOver={(event) => {
