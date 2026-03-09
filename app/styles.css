@@ -170,7 +170,7 @@ pre { white-space: pre-wrap; }
   left: 50%;
   transform: translateX(-50%);
   bottom: 16px;
-  width: min(calc(100vw / 3), calc(100vw - 24px));
+  width: min(calc((100vw * 2) / 3), calc(100vw - 24px));
   background: #111827;
   border: 1px solid #334155;
   border-radius: 10px;
@@ -183,28 +183,22 @@ pre { white-space: pre-wrap; }
 }
 
 .player-hand-scroll {
-  display: flex;
-  align-items: stretch;
-  overflow-x: auto;
-  overflow-y: visible;
-  padding: 4px 0;
+  position: relative;
+  min-height: 118px;
+  padding: 4px 0 0;
   isolation: isolate;
 }
 
 .player-hand-card {
-  position: relative;
-  flex: 0 0 140px;
-  min-width: 140px;
-  margin-left: -72px;
+  --hand-card-width: clamp(120px, 18vw, 160px);
+  position: absolute;
+  top: 4px;
+  width: var(--hand-card-width);
   border: 1px solid #4b5563;
   border-radius: 8px;
   padding: 8px;
   background: #1f2937;
   transition: transform 120ms ease, box-shadow 120ms ease;
-}
-
-.player-hand-card:first-child {
-  margin-left: 0;
 }
 
 .player-hand-card:hover,

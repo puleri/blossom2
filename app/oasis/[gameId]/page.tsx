@@ -433,31 +433,41 @@ export default function OasisGamePage() {
             <p className="player-hand-empty">Drag a card to one of your rows to play it. Playing a card ends your turn.</p>
             {currentPlayerState?.hand?.length ? (
               <div className="player-hand-scroll">
-                {currentPlayerState.hand.map((card, index) => (
-                  <article
-                    key={card.id}
-                    className="player-hand-card"
-                    style={{
-                      zIndex:
-                        hoveredHandCardId === card.id
-                          ? currentPlayerState.hand.length + 1
-                          : currentPlayerState.hand.length - index,
-                    }}
-                    draggable={currentUid === gameState.currentPlayerId && !isSubmitting}
-                    onMouseEnter={() => setHoveredHandCardId(card.id)}
-                    onMouseLeave={() => setHoveredHandCardId((value) => (value === card.id ? null : value))}
-                    onFocus={() => setHoveredHandCardId(card.id)}
-                    onBlur={() => setHoveredHandCardId((value) => (value === card.id ? null : value))}
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData("text/plain", card.id);
-                      setDraggedCardId(card.id);
-                    }}
-                    onDragEnd={() => setDraggedCardId(null)}
-                  >
-                    <strong>{card.name}</strong>
-                    <p>{card.id}</p>
-                  </article>
-                ))}
+                {currentPlayerState.hand.map((card, index) => {
+                  const totalCards = currentPlayerState.hand.length;
+                  const handWidthPercent = 100;
+                  const cardWidthPercent = 22;
+                  const maxOffsetPercent = Math.max(0, handWidthPercent - cardWidthPercent);
+                  const leftPercent =
+                    totalCards > 1 ? (index / (totalCards - 1)) * maxOffsetPercent : maxOffsetPercent / 2;
+
+                  return (
+                    <article
+                      key={card.id}
+                      className="player-hand-card"
+                      style={{
+                        left: `${leftPercent}%`,
+                        zIndex:
+                          hoveredHandCardId === card.id
+                            ? currentPlayerState.hand.length + 1
+                            : currentPlayerState.hand.length - index,
+                      }}
+                      draggable={currentUid === gameState.currentPlayerId && !isSubmitting}
+                      onMouseEnter={() => setHoveredHandCardId(card.id)}
+                      onMouseLeave={() => setHoveredHandCardId((value) => (value === card.id ? null : value))}
+                      onFocus={() => setHoveredHandCardId(card.id)}
+                      onBlur={() => setHoveredHandCardId((value) => (value === card.id ? null : value))}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData("text/plain", card.id);
+                        setDraggedCardId(card.id);
+                      }}
+                      onDragEnd={() => setDraggedCardId(null)}
+                    >
+                      <strong>{card.name}</strong>
+                      <p>{card.id}</p>
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <p className="player-hand-empty">No cards in your hand.</p>
