@@ -425,13 +425,17 @@ export class PlantCardGenerator {
 
   constructor(seed = 1, config: Partial<GeneratorConfig> = {}) {
     this.rng = new Mulberry32Rng(seed);
+    const mergedRarityWeights: Record<RarityBand, number> = {
+      common: config.rarityWeights?.common ?? DEFAULT_GENERATOR_CONFIG.rarityWeights!.common,
+      uncommon: config.rarityWeights?.uncommon ?? DEFAULT_GENERATOR_CONFIG.rarityWeights!.uncommon,
+      rare: config.rarityWeights?.rare ?? DEFAULT_GENERATOR_CONFIG.rarityWeights!.rare,
+      legendary: config.rarityWeights?.legendary ?? DEFAULT_GENERATOR_CONFIG.rarityWeights!.legendary,
+    };
+
     this.config = {
       ...DEFAULT_GENERATOR_CONFIG,
       ...config,
-      rarityWeights: {
-        ...DEFAULT_GENERATOR_CONFIG.rarityWeights,
-        ...config.rarityWeights,
-      },
+      rarityWeights: mergedRarityWeights,
       roleWeights: {
         ...DEFAULT_GENERATOR_CONFIG.roleWeights,
         ...config.roleWeights,
@@ -609,7 +613,7 @@ export class PlantCardGenerator {
   }
 
   private pickFromWeightRecord<T extends string | number>(weights: Record<T, number>): T {
-    const entries = Object.entries(weights).map(([value, weight]) => ({
+    const entries = (Object.entries(weights) as Array<[string, number]>).map(([value, weight]) => ({
       value: normalizeKey(value) as T,
       weight,
     }));
