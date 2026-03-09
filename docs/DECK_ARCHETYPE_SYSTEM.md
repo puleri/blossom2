@@ -58,6 +58,7 @@ support
 payoff
 scorer
 enabler
+control
 swing
 ```
 
@@ -95,13 +96,18 @@ swing
 
 * Unlocks archetypes
 * Enables specific strategies
-* ex. Gain 2 water from the supply
+* ex. Gain 2 water from the suppoy
 
 ### swing
 
 * High variance
 * Unpredictable but potentially powerful
 * ex. Discard 1 water and tuck two cards
+
+### control
+
+* Group benefi
+* ex. Everyone gains 1 water, you gain 2
 
 ---
 
@@ -281,11 +287,14 @@ water
 compost
 mineral
 trellis
+desert
 understory
 oasis
 spread
 engine
 conversion
+defense
+storm
 ```
 
 Example:
@@ -393,11 +402,12 @@ Legendary:   2–5%
 
 ```text
 Engine      30%
-Support     25%
-Enabler     20%
-Payoff      10%
+Support     20%
+Enabler     15%
+Payoff      15%
 Vanilla     10%
 Swing        5%
+Control      5%
 ```
 
 ---
@@ -420,7 +430,7 @@ Example:
 
 * common → vanilla, engine, support
 * rare → payoff, enabler
-* legendary → explosive payoff
+* legendary → swing, explosive payoff
 
 ---
 
