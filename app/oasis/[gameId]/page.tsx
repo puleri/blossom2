@@ -103,6 +103,7 @@ export default function OasisGamePage() {
   const [clickedBiome, setClickedBiome] = useState<TableauRowId | null>(null);
   const [deckPileHoverPlayerId, setDeckPileHoverPlayerId] = useState<string | null>(null);
   const [foodCacheHoverPlayerId, setFoodCacheHoverPlayerId] = useState<string | null>(null);
+  const [hoveredHandCardId, setHoveredHandCardId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -436,8 +437,17 @@ export default function OasisGamePage() {
                   <article
                     key={card.id}
                     className="player-hand-card"
-                    style={{ zIndex: currentPlayerState.hand.length - index }}
+                    style={{
+                      zIndex:
+                        hoveredHandCardId === card.id
+                          ? currentPlayerState.hand.length + 1
+                          : currentPlayerState.hand.length - index,
+                    }}
                     draggable={currentUid === gameState.currentPlayerId && !isSubmitting}
+                    onMouseEnter={() => setHoveredHandCardId(card.id)}
+                    onMouseLeave={() => setHoveredHandCardId((value) => (value === card.id ? null : value))}
+                    onFocus={() => setHoveredHandCardId(card.id)}
+                    onBlur={() => setHoveredHandCardId((value) => (value === card.id ? null : value))}
                     onDragStart={(event) => {
                       event.dataTransfer.setData("text/plain", card.id);
                       setDraggedCardId(card.id);
