@@ -273,11 +273,39 @@ pre { white-space: pre-wrap; }
 }
 
 .tableau-card {
+  position: relative;
   border: 1px solid #94a3b8;
   border-radius: 6px;
   padding: 6px;
   background: #0f172a;
   animation: slide-in-left 180ms ease-out;
+}
+
+.card-biome-bars {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 3px;
+}
+
+.card-biome-bar {
+  width: 2px;
+  height: 6px;
+  border-radius: 999px;
+  background: #64748b;
+}
+
+.card-biome-bar.is-oasisEdge {
+  background: #38bdf8;
+}
+
+.card-biome-bar.is-understory {
+  background: #f59e0b;
+}
+
+.card-biome-bar.is-canopy {
+  background: #facc15;
 }
 
 @keyframes slide-in-left {

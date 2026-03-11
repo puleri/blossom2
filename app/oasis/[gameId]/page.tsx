@@ -9,6 +9,7 @@ import { describePlantAbility } from "../../../lib/game/ability-text";
 import type { ProjectedTurnGameState } from "../../../lib/game/projection";
 import {
   TABLEAU_ROW_IDS,
+  type Biome,
   type TableauRowId,
 } from "../../../lib/types";
 import { getDisplayPlayerOrder } from "./player-order";
@@ -35,6 +36,24 @@ const BIOME_MODAL_CONTENT: Record<TableauRowId, { heading: string; description: 
 };
 
 const TABLEAU_ROW_DISPLAY_ORDER: TableauRowId[] = ["oasisEdgeRow", "understoryRow", "canopyRow"];
+const BIOME_BAR_DISPLAY_ORDER: Biome[] = ["oasisEdge", "understory", "canopy"];
+
+function CardBiomeBars({ biomes }: { biomes: Biome[] }) {
+  return (
+    <div className="card-biome-bars" aria-hidden="true">
+      {BIOME_BAR_DISPLAY_ORDER.map((biome) => {
+        const isPlayableBiome = biomes.includes(biome);
+
+        return (
+          <span
+            key={biome}
+            className={`card-biome-bar ${isPlayableBiome ? `is-${biome}` : "is-disabled"}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 type RoomStatus = "lobby" | "in_game" | "finished";
 
@@ -481,6 +500,7 @@ export default function OasisGamePage() {
 
                               return (
                                 <div key={`${playerId}-${rowId}-${card.id}`} className="tableau-card">
+                                  <CardBiomeBars biomes={card.biomes} />
                                   <strong>{card.name}</strong>
                                   {abilityText ? <p className="card-ability-text">{abilityText}</p> : null}
                                 </div>
@@ -543,6 +563,7 @@ export default function OasisGamePage() {
                       }}
                       onDragEnd={() => setDraggedCardId(null)}
                     >
+                      <CardBiomeBars biomes={card.biomes} />
                       <strong>{card.name}</strong>
                       <p>{card.id}</p>
                       {abilityText ? <p className="card-ability-text">{abilityText}</p> : null}
