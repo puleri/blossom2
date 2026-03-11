@@ -9,7 +9,9 @@ import { describePlantAbility } from "../../../lib/game/ability-text";
 import type { ProjectedTurnGameState } from "../../../lib/game/projection";
 import {
   TABLEAU_ROW_IDS,
+  type FoodToken,
   type Biome,
+  type PlantDefinition,
   type TableauRowId,
 } from "../../../lib/types";
 import { getDisplayPlayerOrder } from "./player-order";
@@ -37,6 +39,49 @@ const BIOME_MODAL_CONTENT: Record<TableauRowId, { heading: string; description: 
 
 const TABLEAU_ROW_DISPLAY_ORDER: TableauRowId[] = ["oasisEdgeRow", "understoryRow", "canopyRow"];
 const BIOME_BAR_DISPLAY_ORDER: Biome[] = ["oasisEdge", "understory", "canopy"];
+const FOOD_TOKEN_BY_RESOURCE: Partial<Record<keyof PlantDefinition["cost"], FoodToken>> = {
+  water: "W",
+  mineral: "M",
+  compost: "C",
+  trellis: "T",
+  pollinator: "P",
+};
+
+function getCardFoodTokens(card: Pick<PlantDefinition, "cost">): FoodToken[] {
+  const tokens: FoodToken[] = [];
+
+  for (const [resource, amount] of Object.entries(card.cost)) {
+    if (!amount) {
+      continue;
+    }
+
+    const token = FOOD_TOKEN_BY_RESOURCE[resource as keyof PlantDefinition["cost"]];
+    if (!token) {
+      continue;
+    }
+
+    for (let index = 0; index < amount; index += 1) {
+      tokens.push(token);
+    }
+  }
+
+  return tokens;
+}
+
+function CardFoodDots({ card }: { card: Pick<PlantDefinition, "cost"> }) {
+  const foodTokens = getCardFoodTokens(card);
+  if (!foodTokens.length) {
+    return null;
+  }
+
+  return (
+    <div className="card-food-dots" aria-hidden="true">
+      {foodTokens.map((token, index) => (
+        <span key={`${token}-${index}`} className={`card-food-dot is-${token.toLowerCase()}`} />
+      ))}
+    </div>
+  );
+}
 
 function CardBiomeBars({ biomes }: { biomes: Biome[] }) {
   return (
@@ -546,6 +591,7 @@ export default function OasisGamePage() {
 
                               return (
                                 <div key={`${playerId}-${rowId}-${card.id}`} className="tableau-card">
+                                  <CardFoodDots card={card} />
                                   <CardBiomeBars biomes={card.biomes} />
                                   <strong>{card.name}</strong>
                                   {abilityText ? <p className="card-ability-text">{abilityText}</p> : null}
@@ -615,6 +661,7 @@ export default function OasisGamePage() {
                       }}
                       onDragEnd={() => setDraggedCardId(null)}
                     >
+                      <CardFoodDots card={card} />
                       <CardBiomeBars biomes={card.biomes} />
                       <strong>{card.name}</strong>
                       <p>{card.id}</p>

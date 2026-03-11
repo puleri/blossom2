@@ -282,6 +282,45 @@ pre { white-space: pre-wrap; }
   animation: slide-in-left 180ms ease-out;
 }
 
+.card-food-dots {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: flex;
+}
+
+.card-food-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid #fff;
+  box-sizing: border-box;
+}
+
+.card-food-dot + .card-food-dot {
+  margin-left: -2px;
+}
+
+.card-food-dot.is-w {
+  background: #38bdf8;
+}
+
+.card-food-dot.is-m {
+  background: #f97316;
+}
+
+.card-food-dot.is-c {
+  background: #22c55e;
+}
+
+.card-food-dot.is-t {
+  background: #a855f7;
+}
+
+.card-food-dot.is-p {
+  background: #facc15;
+}
+
 .card-points,
 .card-max-sun {
   position: absolute;
