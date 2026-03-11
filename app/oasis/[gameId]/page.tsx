@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { submitMoveIntent } from "../../../lib/moves-client";
 import { auth, ensureSignedIn } from "../../../lib/firebase";
+import { describePlantAbility } from "../../../lib/game/ability-text";
 import type { ProjectedTurnGameState } from "../../../lib/game/projection";
 import {
   TABLEAU_ROW_IDS,
@@ -475,11 +476,16 @@ export default function OasisGamePage() {
                               void handlePlayCard(cardId, rowId);
                             }}
                           >
-                            {rowCards.map((card) => (
-                              <div key={`${playerId}-${rowId}-${card.id}`} className="tableau-card">
-                                <strong>{card.name}</strong>
-                              </div>
-                            ))}
+                            {rowCards.map((card) => {
+                              const abilityText = describePlantAbility(card);
+
+                              return (
+                                <div key={`${playerId}-${rowId}-${card.id}`} className="tableau-card">
+                                  <strong>{card.name}</strong>
+                                  {abilityText ? <p className="card-ability-text">{abilityText}</p> : null}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -507,6 +513,7 @@ export default function OasisGamePage() {
             {currentPlayerHand.length ? (
               <div className="player-hand-scroll">
                 {currentPlayerHand.map((card, index) => {
+                  const abilityText = describePlantAbility(card);
                   const totalCards = currentPlayerHand.length;
                   const handWidthPercent = 100;
                   const cardWidthPercent = 22;
@@ -538,6 +545,7 @@ export default function OasisGamePage() {
                     >
                       <strong>{card.name}</strong>
                       <p>{card.id}</p>
+                      {abilityText ? <p className="card-ability-text">{abilityText}</p> : null}
                     </article>
                   );
                 })}
