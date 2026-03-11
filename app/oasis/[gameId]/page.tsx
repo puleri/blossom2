@@ -55,6 +55,20 @@ function CardBiomeBars({ biomes }: { biomes: Biome[] }) {
   );
 }
 
+function CardStats({ points, maxSunTokens }: { points: number; maxSunTokens: number }) {
+  return (
+    <>
+      <span className="card-points" aria-label={`Points: ${points}`}>
+        {points}
+      </span>
+      <span className="card-max-sun" aria-label={`Max sun slots: ${maxSunTokens}`}>
+        <span>{maxSunTokens}</span>
+        <span className="card-max-sun-dot" aria-hidden="true" />
+      </span>
+    </>
+  );
+}
+
 type RoomStatus = "lobby" | "in_game" | "finished";
 
 type RoomDoc = {
@@ -503,6 +517,7 @@ export default function OasisGamePage() {
                                   <CardBiomeBars biomes={card.biomes} />
                                   <strong>{card.name}</strong>
                                   {abilityText ? <p className="card-ability-text">{abilityText}</p> : null}
+                                  <CardStats points={card.points} maxSunTokens={card.maxSunTokens} />
                                 </div>
                               );
                             })}
@@ -567,6 +582,7 @@ export default function OasisGamePage() {
                       <strong>{card.name}</strong>
                       <p>{card.id}</p>
                       {abilityText ? <p className="card-ability-text">{abilityText}</p> : null}
+                      <CardStats points={card.points} maxSunTokens={card.maxSunTokens} />
                     </article>
                   );
                 })}
