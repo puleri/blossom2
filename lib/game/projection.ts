@@ -15,6 +15,7 @@ export type ProjectedPlayerState = {
   hand?: Card[];
   tableau: Record<TableauRowId, Card[]>;
   food: FoodToken[];
+  sunlightTokens: number;
 };
 
 export type ProjectedTurnGameState = {
@@ -121,6 +122,7 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
         handCount: hand.length,
         tableau: hydratedTableau.tableau,
         food: state.foodByPlayerId?.[playerId] ?? [],
+        sunlightTokens: state.sunlightByPlayerId?.[playerId] ?? 0,
         ...(hydratedHand ? { hand: hydratedHand.cards } : {}),
       };
 

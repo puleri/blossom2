@@ -123,6 +123,7 @@ export type TurnGameState = {
   tray: CardId[];
   foodCache: FoodToken[];
   foodByPlayerId?: Record<string, FoodToken[]>;
+  sunlightByPlayerId?: Record<string, number>;
   lastAction?: ActionType;
 };
 
