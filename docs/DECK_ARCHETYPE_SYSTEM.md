@@ -106,7 +106,7 @@ swing
 
 ### control
 
-* Group benefi
+* Group benefit
 * ex. Everyone gains 1 water, you gain 2
 
 ---
