@@ -214,6 +214,30 @@ export function takeFoodTokenToInventory(
   };
 }
 
+
+export function gainSunlightToken(
+  game: TurnGameState,
+  playerId: string,
+  amount = 1,
+): { game: TurnGameState; gained: number } {
+  if (amount <= 0) {
+    return { game, gained: 0 };
+  }
+
+  const currentSunlight = game.sunlightByPlayerId?.[playerId] ?? 0;
+
+  return {
+    gained: amount,
+    game: {
+      ...game,
+      sunlightByPlayerId: {
+        ...game.sunlightByPlayerId,
+        [playerId]: currentSunlight + amount,
+      },
+    },
+  };
+}
+
 export function getNextPlayerId(game: TurnGameState): string {
   const currentIndex = game.playerOrder.indexOf(game.currentPlayerId);
 

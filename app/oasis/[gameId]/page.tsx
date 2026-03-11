@@ -236,6 +236,7 @@ export default function OasisGamePage() {
     [currentUid, gameState?.playerOrder],
   );
   const currentPlayerHand = currentPlayerState?.hand ?? [];
+  const currentPlayerSunTokens = currentPlayerState?.sunlightTokens ?? 0;
 
   const handlePlayCard = async (cardId: string, rowId: TableauRowId) => {
     if (!gameState || !room?.game || isSubmitting || currentUid !== gameState.currentPlayerId) {
@@ -334,6 +335,33 @@ export default function OasisGamePage() {
     }
   };
 
+  const handleGainSunToken = async () => {
+    if (!gameState || !room?.game || isSubmitting || !currentUid || currentUid !== gameState.currentPlayerId) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const result = await submitMoveIntent(gameId, {
+        type: "gainSunToken",
+        expectedTurn: gameState.turn,
+        expectedActionCounter: room.game.actionCounter,
+      });
+
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+
+      setStatus("Sun token gained.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to gain sun token.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <main className={isInGame ? "oasis-game-main with-hand-panel" : "oasis-game-main"}>
       <h1>Oasis Game: {gameId}</h1>
@@ -397,9 +425,13 @@ export default function OasisGamePage() {
           <button
             type="button"
             className="sun-icon-button"
-            aria-label="Sun"
+            aria-label="Gain 1 sun token"
             onMouseEnter={() => setSunHoverPlayerId(currentUid)}
             onMouseLeave={() => setSunHoverPlayerId((value) => (value === currentUid ? null : value))}
+            onClick={() => {
+              void handleGainSunToken();
+            }}
+            disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
           >
             ☀
           </button>
@@ -530,6 +562,11 @@ export default function OasisGamePage() {
               );
             })}
           </section>
+
+          <aside className="player-sun-panel" aria-label="Your sun tokens">
+            <p className="player-sun-title">Sun inventory</p>
+            <p className="player-sun-count" aria-live="polite">☀ x{currentPlayerSunTokens}</p>
+          </aside>
 
           {currentPlayerFoodCounts.length ? (
             <aside className="player-food-panel" aria-label="Your food tokens">

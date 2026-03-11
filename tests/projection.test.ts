@@ -35,6 +35,7 @@ describe("projectTurnGameState", () => {
       deck: [CARD_THREE],
       tray: [CARD_THREE],
       foodCache: ["W", "M", "C", "T", "P"],
+      sunlightByPlayerId: { p1: 2 },
     };
 
     const projected = projectTurnGameState(state, "p1");
@@ -42,6 +43,7 @@ describe("projectTurnGameState", () => {
     expect(projected.players.p1.hand?.[0]?.id).toBe(CARD_ONE);
     expect(projected.players.p1.tableau.understoryRow[0]?.id).toBe(CARD_TWO);
     expect(projected.tray[0]?.id).toBe(CARD_THREE);
+    expect(projected.players.p1.sunlightTokens).toBe(2);
     expect(projected.diagnostics).toEqual([]);
   });
 
@@ -68,6 +70,7 @@ describe("projectTurnGameState", () => {
       deck: [CARD_THREE],
       tray: ["unknown-tray-card", CARD_THREE],
       foodCache: ["W", "M", "C", "T", "P"],
+      sunlightByPlayerId: { p1: 1 },
     };
 
     const projected = projectTurnGameState(state, "p1");
@@ -75,6 +78,7 @@ describe("projectTurnGameState", () => {
     expect(projected.players.p1.hand?.map((card) => card.id)).toEqual([CARD_ONE]);
     expect(projected.players.p1.tableau.understoryRow.map((card) => card.id)).toEqual([CARD_TWO]);
     expect(projected.tray.map((card) => card.id)).toEqual([CARD_THREE]);
+    expect(projected.players.p1.sunlightTokens).toBe(1);
 
     expect(projected.diagnostics).toEqual([
       {

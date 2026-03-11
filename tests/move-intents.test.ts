@@ -210,6 +210,28 @@ describe("applyMoveIntent", () => {
     }
   });
 
+
+  it("gains a sun token for the active player without ending turn", () => {
+    const result = applyMoveIntent(
+      game,
+      {
+        type: "gainSunToken",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.sunlightByPlayerId?.p1).toBe(1);
+      expect(result.state.currentPlayerId).toBe("p1");
+      expect(result.state.turn).toBe(1);
+      expect(result.actionCounter).toBe(1);
+    }
+  });
+
   it("rejects draw card when the deck is empty", () => {
     const emptyDeckGame = {
       ...game,

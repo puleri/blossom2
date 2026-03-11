@@ -1,4 +1,4 @@
-import { drawDeckCardToHand, endTurn, playCardToRow, takeFoodTokenToInventory } from "./rules";
+import { drawDeckCardToHand, endTurn, gainSunlightToken, playCardToRow, takeFoodTokenToInventory } from "./rules";
 import type { TableauRowId, TurnGameState } from "../types";
 
 export type MoveIntent =
@@ -17,6 +17,11 @@ export type MoveIntent =
   | {
       type: "takeFoodToken";
       cacheIndex: number;
+      expectedTurn: number;
+      expectedActionCounter: number;
+    }
+  | {
+      type: "gainSunToken";
       expectedTurn: number;
       expectedActionCounter: number;
     };
@@ -102,6 +107,16 @@ export function applyMoveIntent(
     return {
       ok: true,
       state: taken.game,
+      actionCounter: currentActionCounter + 1,
+    };
+  }
+
+  if (intent.type === "gainSunToken") {
+    const gained = gainSunlightToken(state, actorUid, 1);
+
+    return {
+      ok: true,
+      state: gained.game,
       actionCounter: currentActionCounter + 1,
     };
   }
