@@ -64,6 +64,15 @@ export async function POST(
   }
 
   const moveIntent = (await request.json()) as MoveIntent;
+  console.log("[moves] received move intent", {
+    roomId: params.roomId,
+    uid,
+    intentType: moveIntent.type,
+    expectedTurn: moveIntent.expectedTurn,
+    expectedActionCounter: moveIntent.expectedActionCounter,
+    ...(moveIntent.type === "resolveChoice" ? { optionIndex: moveIntent.optionIndex } : {}),
+  });
+
   const db = getServerFirestore();
   const roomRef = doc(db, "rooms", params.roomId);
 
@@ -93,6 +102,12 @@ export async function POST(
       const applied = applyMoveIntent(room.game.state, moveIntent, uid, room.game.actionCounter);
 
       if (!applied.ok) {
+        console.log("[moves] move intent rejected", {
+          roomId: params.roomId,
+          uid,
+          intentType: moveIntent.type,
+          error: applied.error,
+        });
         return { ok: false as const, error: applied.error };
       }
 
@@ -104,6 +119,16 @@ export async function POST(
             activationSteps: applied.animation.activationSteps,
           }
         : null;
+
+      console.log("[moves] move intent applied", {
+        roomId: params.roomId,
+        uid,
+        intentType: moveIntent.type,
+        nextTurn: applied.state.turn,
+        nextCurrentPlayerId: applied.state.currentPlayerId,
+        actionCounter: applied.actionCounter,
+        hasPendingChoice: Boolean(applied.state.pendingChoice),
+      });
 
       tx.update(roomRef, {
         game: {
