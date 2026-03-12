@@ -208,7 +208,6 @@ export default function OasisGamePage() {
   const [permanentTuckCountsByCardKey, setPermanentTuckCountsByCardKey] = useState<Record<string, number>>({});
   const [diceDisplayValue, setDiceDisplayValue] = useState<number | null>(null);
   const [diceDisplayPhase, setDiceDisplayPhase] = useState<"rolling" | "settled" | "success" | null>(null);
-  const [isChoiceMenuDismissed, setIsChoiceMenuDismissed] = useState(false);
   const processedAnimationSequenceIdsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
@@ -284,9 +283,6 @@ export default function OasisGamePage() {
   const currentPlayerHand = currentPlayerState?.hand ?? [];
   const currentPlayerSunTokens = currentPlayerState?.sunlightTokens ?? 0;
   const pendingChoice = gameState?.pendingChoice ?? null;
-  const pendingChoiceKey = pendingChoice
-    ? `${pendingChoice.cardId}:${pendingChoice.options.map((option) => option.label).join("|")}`
-    : null;
   const projectedPendingAnimations = useMemo(() => {
     const event = room?.game?.animationEvent;
     if (!event?.activationSteps?.length) {
@@ -348,10 +344,6 @@ export default function OasisGamePage() {
       return didUpdate ? next : previous;
     });
   }, [room?.game?.animationEvent]);
-
-  useEffect(() => {
-    setIsChoiceMenuDismissed(false);
-  }, [pendingChoiceKey]);
 
   useEffect(() => {
     if (!activationAnimationQueue.length || activationAnimationStep < 0) {
@@ -460,8 +452,6 @@ export default function OasisGamePage() {
     if (!gameState || !room?.game || isSubmitting || !pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
       return;
     }
-
-    setIsChoiceMenuDismissed(true);
 
     try {
       setIsSubmitting(true);
@@ -932,7 +922,7 @@ export default function OasisGamePage() {
         </div>
       ) : null}
 
-      {pendingChoice && !isChoiceMenuDismissed ? (
+      {pendingChoice ? (
         <div className="choice-modal-overlay" role="presentation">
           <div className="choice-modal" role="dialog" aria-label="Resolve card choice" aria-modal="true">
             <p className="biome-modal-heading">Resolve On Play ability</p>
