@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { applyMoveIntent, type MoveIntent } from "../../../../../lib/game/intents";
 import { projectTurnGameState } from "../../../../../lib/game/projection";
-import type { TurnGameState } from "../../../../../lib/types";
+import type { TableauRowId, TurnGameState } from "../../../../../lib/types";
 import { getServerFirestore, verifyIdToken } from "../../../../../lib/server-firestore";
 
 type RoomDoc = {
@@ -19,7 +19,7 @@ type RoomDoc = {
       activationSteps: Array<{
         stepIndex: number;
         cardId: string;
-        rowId: "oasisEdgeRow";
+        rowId: TableauRowId;
         trigger: "onActivate";
         hasAbility: boolean;
         rollOutcome?: {

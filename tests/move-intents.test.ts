@@ -366,6 +366,59 @@ describe("applyMoveIntent", () => {
     }
   });
 
+  it("gain sun resolves canopy activations bottom-to-top with mixed abilities", () => {
+    const drawAbilityCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "drawCards" && card.biomes.includes("canopy"));
+    const gainSunCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "gainSun" && card.biomes.includes("canopy"));
+    const noAbilityCard = EXPANDED_DECK.find((card) => !card.onActivate && card.biomes.includes("canopy"));
+    const drawAmount = drawAbilityCard?.onActivate?.type === "drawCards" ? drawAbilityCard.onActivate.effect.draw : 0;
+
+    expect(drawAbilityCard).toBeDefined();
+    expect(gainSunCard).toBeDefined();
+    expect(noAbilityCard).toBeDefined();
+
+    const gameWithRow = {
+      ...game,
+      deck: ["d1", "d2", ...game.deck],
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          canopyRow: [drawAbilityCard!.id, noAbilityCard!.id, gainSunCard!.id],
+        },
+      },
+    };
+
+    const result = applyMoveIntent(
+      gameWithRow,
+      {
+        type: "gainSunToken",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.actionCounter).toBe(1);
+      expect(result.animation?.activationSteps.map((step) => step.cardId)).toEqual([
+        gainSunCard!.id,
+        noAbilityCard!.id,
+        drawAbilityCard!.id,
+      ]);
+      expect(result.animation?.activationSteps.map((step) => step.rowId)).toEqual([
+        "canopyRow",
+        "canopyRow",
+        "canopyRow",
+      ]);
+      expect(result.animation?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
+      expect(result.state.sunlightByPlayerId?.p1).toBe(1 + (gainSunCard!.onActivate?.type === "gainSun" ? gainSunCard!.onActivate.effect.amount : 0));
+      expect(result.state.handsByPlayerId.p1.slice(-drawAmount)).toEqual(gameWithRow.deck.slice(0, drawAmount));
+      expect(result.state.deck[0]).toBe(gameWithRow.deck[drawAmount]);
+    }
+  });
+
   it("rejects draw card when the deck is empty", () => {
     const emptyDeckGame = {
       ...game,
