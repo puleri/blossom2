@@ -2,6 +2,19 @@ import { EXPANDED_DECK } from "./cards";
 import { drawDeckCardToHand, endTurn, gainSunlightToken, playCardToRow, takeFoodTokenToInventory } from "./rules";
 import type { ActivationAbility, CardId, TableauRowId, TurnGameState } from "../types";
 
+export type ActivationAnimationStep = {
+  stepIndex: number;
+  cardId: CardId;
+  rowId: "oasisEdgeRow";
+  trigger: "onActivate";
+  hasAbility: boolean;
+};
+
+export type MoveAnimationPayload = {
+  actorUid: string;
+  activationSteps: ActivationAnimationStep[];
+};
+
 export type MoveIntent =
   | {
       type: "playCard";
@@ -34,6 +47,7 @@ export type MoveResult =
       ok: true;
       state: TurnGameState;
       actionCounter: number;
+      animation?: MoveAnimationPayload;
     }
   | {
       ok: false;
@@ -166,7 +180,7 @@ export function applyMoveIntent(
   const orderedCardIds = [...oasisEdgeRow].reverse();
 
   let nextState = drawn.game;
-  const activationSteps = orderedCardIds.map((cardId, stepIndex) => {
+  const activationSteps: ActivationAnimationStep[] = orderedCardIds.map((cardId, stepIndex) => {
     const ability = cardById(cardId)?.onActivate;
 
     if (ability) {
@@ -179,20 +193,16 @@ export function applyMoveIntent(
       rowId: "oasisEdgeRow" as const,
       trigger: "onActivate" as const,
       hasAbility: Boolean(ability),
-      abilityType: ability?.type,
     };
   });
 
   return {
     ok: true,
-    state: {
-      ...nextState,
-      lastResolution: {
-        moveType: "drawCard",
-        actorUid,
-        activationSteps,
-      },
-    },
+    state: nextState,
     actionCounter: currentActionCounter + 1,
+    animation: {
+      actorUid,
+      activationSteps,
+    },
   };
 }

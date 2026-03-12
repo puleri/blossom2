@@ -265,12 +265,12 @@ describe("applyMoveIntent", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.actionCounter).toBe(1);
-      expect(result.state.lastResolution?.activationSteps.map((step) => step.cardId)).toEqual([
+      expect(result.animation?.activationSteps.map((step) => step.cardId)).toEqual([
         gainSunCard!.id,
         noAbilityCard!.id,
         drawAbilityCard!.id,
       ]);
-      expect(result.state.lastResolution?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
+      expect(result.animation?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
       expect(result.state.sunlightByPlayerId?.p1).toBe(2);
       expect(result.state.handsByPlayerId.p1.slice(-3)).toEqual(["d1", "d2", "d3"]);
       expect(result.state.deck[0]).toBe("d4");
