@@ -23,7 +23,7 @@ pre { white-space: pre-wrap; }
   padding: 8px;
 }
 
-.activation-row-card.is-glowing {
+.activation-row-card.is-deck-hover-glowing {
   border-color: #38bdf8;
   box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45), 0 0 14px rgba(56, 189, 248, 0.3);
 }
@@ -375,6 +375,22 @@ pre { white-space: pre-wrap; }
 
 .card-biome-bar.is-canopy {
   background: #facc15;
+}
+
+
+.tableau-card.is-activation-glow-blue,
+.tableau-card.is-activation-glow-orange {
+  transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.tableau-card.is-activation-glow-blue.is-activation-glow-active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.48), 0 0 16px rgba(56, 189, 248, 0.36);
+}
+
+.tableau-card.is-activation-glow-orange.is-activation-glow-active {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.52), 0 0 16px rgba(245, 158, 11, 0.35);
 }
 
 @keyframes slide-in-left {
