@@ -1,6 +1,6 @@
 import { EXPANDED_DECK } from "./cards";
 import { drawDeckCardToHand, endTurn, gainSunlightToken, playCardToRow, takeFoodTokenToInventory } from "./rules";
-import type { ActivationAbility, CardId, TableauRowId, TurnGameState } from "../types";
+import type { ActivationAbility, CardId, FoodToken, Resource, TableauRowId, TurnGameState } from "../types";
 
 export type ActivationAnimationStep = {
   stepIndex: number;
@@ -63,6 +63,50 @@ function cardById(cardId: CardId) {
   return EXPANDED_DECK.find((card) => card.id === cardId);
 }
 
+const FOOD_TOKEN_BY_RESOURCE: Partial<Record<Resource, FoodToken>> = {
+  water: "W",
+  mineral: "M",
+  compost: "C",
+  trellis: "T",
+  pollinator: "P",
+};
+
+function gainFoodTokens(
+  state: TurnGameState,
+  playerId: string,
+  token: FoodToken,
+  amount: number,
+): TurnGameState {
+  if (amount <= 0) {
+    return state;
+  }
+
+  const inventory = state.foodByPlayerId?.[playerId] ?? [];
+  const gained = Array.from({ length: amount }, () => token);
+
+  return {
+    ...state,
+    foodByPlayerId: {
+      ...state.foodByPlayerId,
+      [playerId]: [...inventory, ...gained],
+    },
+  };
+}
+
+function applyResourceGain(
+  state: TurnGameState,
+  playerId: string,
+  resource: Resource,
+  amount: number,
+): TurnGameState {
+  const token = FOOD_TOKEN_BY_RESOURCE[resource];
+  if (!token) {
+    return state;
+  }
+
+  return gainFoodTokens(state, playerId, token, amount);
+}
+
 function applyActivationAbility(state: TurnGameState, actorUid: string, ability: ActivationAbility): TurnGameState {
   if (ability.type === "gainSun") {
     return gainSunlightToken(state, actorUid, ability.effect.amount).game;
@@ -80,6 +124,17 @@ function applyActivationAbility(state: TurnGameState, actorUid: string, ability:
     }
 
     return nextState;
+  }
+
+  if (ability.type === "groupBenefit") {
+    const { allPlayersGain, youGain } = ability.effect;
+    let nextState = state;
+
+    for (const playerId of state.playerOrder) {
+      nextState = applyResourceGain(nextState, playerId, allPlayersGain.resource, allPlayersGain.amount);
+    }
+
+    return applyResourceGain(nextState, actorUid, youGain.resource, youGain.amount);
   }
 
   return state;

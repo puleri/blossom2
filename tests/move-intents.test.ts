@@ -277,6 +277,48 @@ describe("applyMoveIntent", () => {
     }
   });
 
+  it("draw resolves group benefit by granting all players resources and extra to actor", () => {
+    const groupBenefitCard = EXPANDED_DECK.find(
+      (card) =>
+        card.onActivate?.type === "groupBenefit"
+        && card.onActivate.effect.allPlayersGain.resource === "pollinator"
+        && card.onActivate.effect.allPlayersGain.amount === 1
+        && card.onActivate.effect.youGain.resource === "pollinator"
+        && card.onActivate.effect.youGain.amount === 2,
+    );
+
+    expect(groupBenefitCard).toBeDefined();
+
+    const gameWithGroupBenefit = {
+      ...game,
+      deck: ["d1", ...game.deck],
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          oasisEdgeRow: [groupBenefitCard!.id],
+        },
+      },
+    };
+
+    const result = applyMoveIntent(
+      gameWithGroupBenefit,
+      {
+        type: "drawCard",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.foodByPlayerId?.p1).toEqual(["P", "P", "P"]);
+      expect(result.state.foodByPlayerId?.p2).toEqual(["P"]);
+    }
+  });
+
   it("draws a card into the active player's hand without ending turn", () => {
     const result = applyMoveIntent(
       game,
