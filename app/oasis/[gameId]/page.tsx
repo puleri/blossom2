@@ -726,8 +726,16 @@ export default function OasisGamePage() {
                                   ? "is-activation-glow-blue"
                                   : "is-activation-glow-orange"
                                 : "";
-                              const tuckCards = animationStep?.rollOutcome?.tuckedCards ?? 0;
-                              const tuckScale = 1 + tuckCards * 0.01;
+                              const tuckCards = activationAnimationQueue
+                                .filter(
+                                  (step) =>
+                                    step.stepIndex <= activationAnimationStep &&
+                                    step.cardId === card.id &&
+                                    step.rowId === rowId &&
+                                    (step.actorUid === playerId || step.playerId === playerId),
+                                )
+                                .reduce((sum, step) => sum + (step.rollOutcome?.tuckedCards ?? 0), 0);
+                              const tuckScale = 1 + tuckCards * 0.005;
                               const tuckUnderCardTilt =
                                 card.id
                                   .split("")
