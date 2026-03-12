@@ -140,7 +140,7 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
     turn: state.turn,
     currentPlayerId: state.currentPlayerId,
     playerOrder: state.playerOrder,
-    lastAction: state.lastAction,
+    ...(state.lastAction ? { lastAction: state.lastAction } : {}),
     deckCount: state.deck.length,
     tray: hydratedTray.cards,
     foodCache: state.foodCache,
