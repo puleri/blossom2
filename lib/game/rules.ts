@@ -132,8 +132,8 @@ export function playCardToRow(
     return { game, card: null };
   }
 
-  const biome = BIOME_METADATA[deckCard.biomes[0] ?? "canopy"]?.rowId;
-  if (biome !== rowId) {
+  const canPlayInRow = deckCard.biomes.some((biome) => BIOME_METADATA[biome].rowId === rowId);
+  if (!canPlayInRow) {
     return { game, card: null };
   }
 
