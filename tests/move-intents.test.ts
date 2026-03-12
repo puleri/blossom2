@@ -128,6 +128,48 @@ describe("applyMoveIntent", () => {
     }
   });
 
+
+
+  it("allows playing multi-biome cards into the understory row", () => {
+    const multiBiomeUnderstoryCard = EXPANDED_DECK.find(
+      (card) => card.biomes.includes("understory") && card.biomes[0] !== "understory",
+    );
+
+    expect(multiBiomeUnderstoryCard).toBeDefined();
+    const gameWithSpecificHand = {
+      ...game,
+      handsByPlayerId: {
+        ...game.handsByPlayerId,
+        p1: [multiBiomeUnderstoryCard!.id],
+      },
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          understoryRow: [],
+        },
+      },
+    };
+
+    const result = applyMoveIntent(
+      gameWithSpecificHand,
+      {
+        type: "playCard",
+        cardId: multiBiomeUnderstoryCard!.id,
+        rowId: "understoryRow",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.tableauByPlayerId.p1.understoryRow).toContain(multiBiomeUnderstoryCard!.id);
+      expect(result.state.handsByPlayerId.p1).toEqual([]);
+    }
+  });
   it("plays a card, then advances turn and action counter on valid intent", () => {
     const result = applyMoveIntent(
       game,
