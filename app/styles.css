@@ -309,7 +309,7 @@ pre { white-space: pre-wrap; }
   position: relative;
   border: 1px solid #94a3b8;
   border-radius: 6px;
-  padding: 6px 6px 20px;
+  padding: 20px 30px 40px;
   background: #0f172a;
   animation: slide-in-left 180ms ease-out;
 }
