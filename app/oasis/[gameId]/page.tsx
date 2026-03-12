@@ -282,6 +282,7 @@ export default function OasisGamePage() {
   );
   const currentPlayerHand = currentPlayerState?.hand ?? [];
   const currentPlayerSunTokens = currentPlayerState?.sunlightTokens ?? 0;
+  const pendingChoice = gameState?.pendingChoice ?? null;
   const projectedPendingAnimations = useMemo(() => {
     const event = room?.game?.animationEvent;
     if (!event?.activationSteps?.length) {
@@ -447,8 +448,36 @@ export default function OasisGamePage() {
     };
   }, [activationAnimationQueue, activationAnimationStep]);
 
+  const handleResolveChoice = async (optionIndex: number) => {
+    if (!gameState || !room?.game || isSubmitting || !pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const result = await submitMoveIntent(gameId, {
+        type: "resolveChoice",
+        optionIndex,
+        expectedTurn: gameState.turn,
+        expectedActionCounter: room.game.actionCounter,
+      });
+
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+
+      setStatus("Choice resolved.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to resolve choice.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handlePlayCard = async (cardId: string, rowId: TableauRowId) => {
-    if (!gameState || !room?.game || isSubmitting || currentUid !== gameState.currentPlayerId) {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || currentUid !== gameState.currentPlayerId) {
       return;
     }
 
@@ -490,7 +519,7 @@ export default function OasisGamePage() {
   };
 
   const handleDrawCard = async () => {
-    if (!gameState || !room?.game || isSubmitting || !currentUid || currentUid !== gameState.currentPlayerId) {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
       return;
     }
 
@@ -517,7 +546,7 @@ export default function OasisGamePage() {
   };
 
   const handleTakeFoodToken = async (cacheIndex: number) => {
-    if (!gameState || !room?.game || isSubmitting || !currentUid || currentUid !== gameState.currentPlayerId) {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
       return;
     }
 
@@ -545,7 +574,7 @@ export default function OasisGamePage() {
   };
 
   const handleGainSunToken = async () => {
-    if (!gameState || !room?.game || isSubmitting || !currentUid || currentUid !== gameState.currentPlayerId) {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
       return;
     }
 
@@ -890,6 +919,20 @@ export default function OasisGamePage() {
       {diceDisplayValue ? (
         <div className={`dice-roll-overlay ${diceDisplayPhase === "success" ? "is-success" : ""}`} aria-hidden="true">
           {diceDisplayValue}
+        </div>
+      ) : null}
+
+      {pendingChoice ? (
+        <div className="biome-modal" role="dialog" aria-label="Resolve card choice">
+          <p className="biome-modal-heading">Resolve On Play ability</p>
+          <p className="biome-modal-description">Choose one option for {pendingChoice.cardId}.</p>
+          <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+            {pendingChoice.options.map((option, index) => (
+              <button key={`${option.label}-${index}`} type="button" onClick={() => void handleResolveChoice(index)} disabled={isSubmitting}>
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 
