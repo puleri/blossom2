@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -141,6 +141,12 @@ type PendingActivationAnimation = {
   trigger?: "onActivate";
   actorUid?: string;
   playerId?: string;
+  rollOutcome?: {
+    rolled: number;
+    successIfLessThan: number;
+    success: boolean;
+    tuckedCards: number;
+  };
 };
 
 function buildOptimisticRoom(
@@ -199,6 +205,8 @@ export default function OasisGamePage() {
   const [hoveredHandCardId, setHoveredHandCardId] = useState<string | null>(null);
   const [activationAnimationQueue, setActivationAnimationQueue] = useState<PendingActivationAnimation[]>([]);
   const [activationAnimationStep, setActivationAnimationStep] = useState(-1);
+  const [diceDisplayValue, setDiceDisplayValue] = useState<number | null>(null);
+  const [diceDisplayPhase, setDiceDisplayPhase] = useState<"rolling" | "settled" | "success" | null>(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -318,6 +326,85 @@ export default function OasisGamePage() {
 
     return () => {
       clearTimeout(timer);
+    };
+  }, [activationAnimationQueue, activationAnimationStep]);
+
+  useEffect(() => {
+    if (!activationAnimationQueue.length || activationAnimationStep < 0) {
+      setDiceDisplayValue(null);
+      setDiceDisplayPhase(null);
+      return;
+    }
+
+    const activeStep = activationAnimationQueue[activationAnimationStep];
+    const rollOutcome = activeStep?.rollOutcome;
+    if (!rollOutcome) {
+      setDiceDisplayValue(null);
+      setDiceDisplayPhase(null);
+      return;
+    }
+
+    let spinInterval: ReturnType<typeof setInterval> | null = null;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    let successTimer: ReturnType<typeof setTimeout> | null = null;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+    let settleInterval: ReturnType<typeof setInterval> | null = null;
+    let currentValue = 1;
+
+    setDiceDisplayPhase("rolling");
+    setDiceDisplayValue(currentValue);
+
+    spinInterval = setInterval(() => {
+      currentValue = currentValue % 6 + 1;
+      setDiceDisplayValue(currentValue);
+    }, 75);
+
+    settleTimer = setTimeout(() => {
+      if (spinInterval) {
+        clearInterval(spinInterval);
+      }
+
+      let settleValue = currentValue;
+      settleInterval = setInterval(() => {
+        if (settleValue === rollOutcome.rolled) {
+          if (settleInterval) {
+            clearInterval(settleInterval);
+          }
+          setDiceDisplayValue(rollOutcome.rolled);
+          setDiceDisplayPhase(rollOutcome.success ? "success" : "settled");
+
+          successTimer = setTimeout(() => {
+            setDiceDisplayPhase("settled");
+          }, rollOutcome.success ? 420 : 0);
+
+          hideTimer = setTimeout(() => {
+            setDiceDisplayValue(null);
+            setDiceDisplayPhase(null);
+          }, rollOutcome.success ? 1050 : 700);
+          return;
+        }
+
+        settleValue = settleValue % 6 + 1;
+        setDiceDisplayValue(settleValue);
+      }, 180);
+    }, 650);
+
+    return () => {
+      if (spinInterval) {
+        clearInterval(spinInterval);
+      }
+      if (settleTimer) {
+        clearTimeout(settleTimer);
+      }
+      if (successTimer) {
+        clearTimeout(successTimer);
+      }
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+      }
+      if (settleInterval) {
+        clearInterval(settleInterval);
+      }
     };
   }, [activationAnimationQueue, activationAnimationStep]);
 
@@ -639,11 +726,27 @@ export default function OasisGamePage() {
                                   ? "is-activation-glow-blue"
                                   : "is-activation-glow-orange"
                                 : "";
+                              const tuckCards = animationStep?.rollOutcome?.tuckedCards ?? 0;
+                              const tuckScale = 1 + tuckCards * 0.01;
+                              const tuckUnderCardTilt =
+                                card.id
+                                  .split("")
+                                  .reduce((sum, character) => sum + character.charCodeAt(0), 0) %
+                                  9 -
+                                4;
 
                               return (
                                 <div
                                   key={`${playerId}-${rowId}-${card.id}`}
-                                  className={`tableau-card ${activationGlowClassName} ${isActiveAnimationStep ? "is-activation-glow-active" : ""}`}
+                                  className={`tableau-card ${activationGlowClassName} ${isActiveAnimationStep ? "is-activation-glow-active" : ""} ${tuckCards > 0 ? "is-tuck-boosted" : ""}`}
+                                  style={
+                                    tuckCards > 0
+                                      ? ({
+                                          transform: `scale(${tuckScale})`,
+                                          ["--tuck-under-tilt" as string]: `${tuckUnderCardTilt}deg`,
+                                        } as CSSProperties)
+                                      : undefined
+                                  }
                                 >
                                   <CardFoodDots card={card} />
                                   <CardBiomeBars biomes={card.biomes} />
@@ -733,6 +836,12 @@ export default function OasisGamePage() {
       ) : null}
 
       {room && room.status !== "lobby" && !isInGame ? <p>Game is not yet in an active playable phase.</p> : null}
+
+      {diceDisplayValue ? (
+        <div className={`dice-roll-overlay ${diceDisplayPhase === "success" ? "is-success" : ""}`} aria-hidden="true">
+          {diceDisplayValue}
+        </div>
+      ) : null}
 
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
     </main>

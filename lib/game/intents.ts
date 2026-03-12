@@ -8,6 +8,12 @@ export type ActivationAnimationStep = {
   rowId: "oasisEdgeRow";
   trigger: "onActivate";
   hasAbility: boolean;
+  rollOutcome?: {
+    rolled: number;
+    successIfLessThan: number;
+    success: boolean;
+    tuckedCards: number;
+  };
 };
 
 export type MoveAnimationPayload = {
@@ -140,6 +146,10 @@ function applyActivationAbility(state: TurnGameState, actorUid: string, ability:
   return state;
 }
 
+function rollDieValue(): number {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
 export function applyMoveIntent(
   state: TurnGameState,
   intent: MoveIntent,
@@ -237,8 +247,27 @@ export function applyMoveIntent(
   let nextState = drawn.game;
   const activationSteps: ActivationAnimationStep[] = orderedCardIds.map((cardId, stepIndex) => {
     const ability = cardById(cardId)?.onActivate;
+    let rollOutcome: ActivationAnimationStep["rollOutcome"];
 
-    if (ability) {
+    if (ability?.type === "rollDieTuck") {
+      const rolled = rollDieValue();
+      const success = rolled < ability.effect.successIfLessThan;
+      const tuckedCards = success ? ability.effect.onSuccess.tuckCards : 0;
+
+      if (tuckedCards > 0) {
+        nextState = {
+          ...nextState,
+          deck: nextState.deck.slice(Math.min(nextState.deck.length, tuckedCards)),
+        };
+      }
+
+      rollOutcome = {
+        rolled,
+        successIfLessThan: ability.effect.successIfLessThan,
+        success,
+        tuckedCards,
+      };
+    } else if (ability) {
       nextState = applyActivationAbility(nextState, actorUid, ability);
     }
 
@@ -248,6 +277,7 @@ export function applyMoveIntent(
       rowId: "oasisEdgeRow" as const,
       trigger: "onActivate" as const,
       hasAbility: Boolean(ability),
+      ...(rollOutcome ? { rollOutcome } : {}),
     };
   });
 
