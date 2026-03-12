@@ -125,18 +125,6 @@ export type TurnGameState = {
   foodByPlayerId?: Record<string, FoodToken[]>;
   sunlightByPlayerId?: Record<string, number>;
   lastAction?: ActionType;
-  lastResolution?: {
-    moveType: "drawCard";
-    actorUid: string;
-    activationSteps: Array<{
-      stepIndex: number;
-      cardId: CardId;
-      rowId: "oasisEdgeRow";
-      trigger: "onActivate";
-      hasAbility: boolean;
-      abilityType?: ActivationAbility["type"];
-    }>;
-  };
 };
 
 export interface PlayerScoreBreakdown {

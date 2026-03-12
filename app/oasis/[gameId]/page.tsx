@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { doc, onSnapshot } from "firebase/firestore";
 import { submitMoveIntent } from "../../../lib/moves-client";
-import { auth, ensureSignedIn } from "../../../lib/firebase";
+import { auth, db, ensureSignedIn } from "../../../lib/firebase";
 import { describePlantAbility } from "../../../lib/game/ability-text";
 import type { ProjectedTurnGameState } from "../../../lib/game/projection";
 import {
@@ -123,12 +124,14 @@ type RoomDoc = {
     phase: "waiting" | "inProgress" | "finished";
     actionCounter: number;
     state?: ProjectedTurnGameState | null;
+    animationEvent?: {
+      sequenceId: number;
+      actorUid: string;
+      createdAtMs: number;
+      activationSteps: PendingActivationAnimation[];
+    } | null;
   };
 };
-
-type RoomSnapshotResponse =
-  | { ok: true; room: RoomDoc }
-  | { ok: false; error: { code: "NOT_AUTHENTICATED" | "INVALID_ACTION"; message: string } };
 
 type PendingActivationAnimation = {
   cardId: string;
@@ -203,75 +206,45 @@ export default function OasisGamePage() {
       return;
     }
 
-    let isMounted = true;
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    let unsubscribe: (() => void) | undefined;
 
-    const fetchProjection = async () => {
-      try {
-        await ensureSignedIn(auth);
-        const idToken = await auth.currentUser?.getIdToken();
-        if (!idToken) {
-          throw new Error("Unable to authenticate.");
-        }
-
-        const response = await fetch(`/api/rooms/${gameId}/state`, {
-          headers: { Authorization: `Bearer ${idToken}` },
-          cache: "no-store",
-        });
-        const payload = (await response.json()) as RoomSnapshotResponse;
-
-        if (!isMounted) {
-          return;
-        }
-
-        if (!response.ok || !payload.ok) {
-          if (response.status === 404) {
-            setRoom(null);
-            setRoomMissing(true);
-            setStatus("Game not found.");
-            setError(null);
-          } else {
-            setError(payload.ok ? "Unable to load game state." : payload.error.message);
-          }
-        } else {
-          setRoomMissing(false);
-          setRoom(payload.room);
-          setStatus("Live game connected.");
-          setError(null);
-        }
-      } catch (snapshotError) {
-        if (isMounted) {
-          setError(snapshotError instanceof Error ? snapshotError.message : "Unable to load game state.");
-        }
-      } finally {
-        if (isMounted) {
-          timer = setTimeout(fetchProjection, 2000);
-        }
-      }
-    };
-
-    void fetchProjection();
-
-    return () => {
-      isMounted = false;
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, [gameId]);
-
-  useEffect(() => {
-    const initAuth = async () => {
+    const subscribeToProjection = async () => {
       try {
         const uid = await ensureSignedIn(auth);
         setCurrentUid(uid);
+        const projectionRef = doc(db, "rooms", gameId, "projections", uid);
+
+        unsubscribe = onSnapshot(
+          projectionRef,
+          (snapshot) => {
+            if (!snapshot.exists()) {
+              setRoom(null);
+              setRoomMissing(true);
+              setStatus("Game not found.");
+              setError(null);
+              return;
+            }
+
+            setRoomMissing(false);
+            setRoom(snapshot.data() as RoomDoc);
+            setStatus("Live game connected.");
+            setError(null);
+          },
+          (snapshotError) => {
+            setError(snapshotError.message || "Unable to subscribe to game state.");
+          },
+        );
       } catch (authError) {
         setError(authError instanceof Error ? authError.message : "Unable to authenticate.");
       }
     };
 
-    initAuth();
-  }, []);
+    void subscribeToProjection();
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [gameId]);
 
   const gameState = room?.game?.state ?? null;
   const isInGame = room?.status === "in_game" && room.game?.phase === "inProgress" && Boolean(gameState);
@@ -295,41 +268,29 @@ export default function OasisGamePage() {
   const currentPlayerHand = currentPlayerState?.hand ?? [];
   const currentPlayerSunTokens = currentPlayerState?.sunlightTokens ?? 0;
   const projectedPendingAnimations = useMemo(() => {
-    const projectedState = gameState as
-      | (ProjectedTurnGameState & {
-          pendingAnimations?: PendingActivationAnimation[];
-          lastResolution?: {
-            moveType?: "drawCard";
-            actorUid?: string;
-            activationSteps?: PendingActivationAnimation[];
-          };
-        })
-      | null;
-    const pending = projectedState?.pendingAnimations;
-
-    if (Array.isArray(pending) && pending.length) {
-      return [...pending].sort((left, right) => left.stepIndex - right.stepIndex);
-    }
-
-    const fallbackSteps = projectedState?.lastResolution?.activationSteps;
-    if (!Array.isArray(fallbackSteps) || projectedState?.lastResolution?.moveType !== "drawCard") {
+    const event = room?.game?.animationEvent;
+    if (!event?.activationSteps?.length) {
       return [];
     }
 
-    return [...fallbackSteps]
+    return event.activationSteps
       .map((step) => ({
         ...step,
-        actorUid: step.actorUid ?? projectedState.lastResolution?.actorUid,
+        actorUid: event.actorUid,
       }))
       .sort((left, right) => left.stepIndex - right.stepIndex);
-  }, [gameState]);
-  const pendingAnimationSignature = useMemo(
-    () =>
-      projectedPendingAnimations
-        .map((step) => `${step.actorUid ?? step.playerId ?? "unknown"}:${step.rowId}:${step.cardId}:${step.stepIndex}`)
-        .join("|"),
-    [projectedPendingAnimations],
-  );
+  }, [room?.game?.animationEvent]);
+  const pendingAnimationSignature = useMemo(() => {
+    const event = room?.game?.animationEvent;
+    if (!event?.activationSteps?.length) {
+      return "";
+    }
+
+    const steps = event.activationSteps
+      .map((step) => `${step.rowId}:${step.cardId}:${step.stepIndex}`)
+      .join("|");
+    return `${event.sequenceId}:${event.actorUid}:${steps}`;
+  }, [room?.game?.animationEvent]);
 
   useEffect(() => {
     setActivationAnimationQueue(projectedPendingAnimations);

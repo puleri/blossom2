@@ -14,6 +14,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { createGame } from "../../../lib/game/rules";
+import { projectTurnGameState } from "../../../lib/game/projection";
 import { auth, db, ensureSignedIn } from "../../../lib/firebase";
 
 type RoomStatus = "lobby" | "in_game" | "finished";
@@ -277,17 +278,40 @@ export default function RoomPage() {
           name: `Player ${idx + 1}`,
         }));
 
+        const initialState = createGame(roomId, players, seed);
+
         tx.update(roomRef, {
           seed,
           status: "in_game",
           startedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           game: {
-            state: createGame(roomId, players, seed),
+            state: initialState,
             actionCounter: 0,
             phase: "inProgress",
+            animationEvent: null,
           },
         });
+
+        for (const memberUid of members) {
+          const projectionRef = doc(db, "rooms", roomId, "projections", memberUid);
+          tx.set(
+            projectionRef,
+            {
+              roomId,
+              uid: memberUid,
+              status: "in_game",
+              game: {
+                phase: "inProgress",
+                actionCounter: 0,
+                state: projectTurnGameState(initialState, memberUid),
+                animationEvent: null,
+              },
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true },
+          );
+        }
       });
 
       setStatus("Game started.");

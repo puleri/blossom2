@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { applyMoveIntent, type MoveIntent } from "../../../../../lib/game/intents";
+import { projectTurnGameState } from "../../../../../lib/game/projection";
 import type { TurnGameState } from "../../../../../lib/types";
 import { getServerFirestore, verifyIdToken } from "../../../../../lib/server-firestore";
 
 type RoomDoc = {
   members?: string[];
+  status?: "lobby" | "in_game" | "finished";
   game?: {
     state: TurnGameState;
     actionCounter: number;
     phase: "waiting" | "inProgress" | "finished";
+    animationEvent?: {
+      sequenceId: number;
+      actorUid: string;
+      createdAtMs: number;
+      activationSteps: Array<{
+        stepIndex: number;
+        cardId: string;
+        rowId: "oasisEdgeRow";
+        trigger: "onActivate";
+        hasAbility: boolean;
+      }>;
+    } | null;
   };
   updatedAt?: unknown;
 };
@@ -70,25 +84,50 @@ export async function POST(
         };
       }
 
-      const applied = applyMoveIntent(
-        room.game.state,
-        moveIntent,
-        uid,
-        room.game.actionCounter,
-      );
+      const applied = applyMoveIntent(room.game.state, moveIntent, uid, room.game.actionCounter);
 
       if (!applied.ok) {
         return { ok: false as const, error: applied.error };
       }
+
+      const animationEvent = applied.animation
+        ? {
+            sequenceId: applied.actionCounter,
+            actorUid: applied.animation.actorUid,
+            createdAtMs: Date.now(),
+            activationSteps: applied.animation.activationSteps,
+          }
+        : null;
 
       tx.update(roomRef, {
         game: {
           ...room.game,
           state: applied.state,
           actionCounter: applied.actionCounter,
+          animationEvent,
         },
         updatedAt: serverTimestamp(),
       });
+
+      for (const memberUid of members) {
+        const projectionRef = doc(db, "rooms", params.roomId, "projections", memberUid);
+        tx.set(
+          projectionRef,
+          {
+            roomId: params.roomId,
+            uid: memberUid,
+            status: room.status ?? "lobby",
+            game: {
+              phase: room.game.phase,
+              actionCounter: applied.actionCounter,
+              state: projectTurnGameState(applied.state, memberUid),
+              animationEvent,
+            },
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
 
       return {
         ok: true as const,
@@ -96,6 +135,7 @@ export async function POST(
           ...room.game,
           state: applied.state,
           actionCounter: applied.actionCounter,
+          animationEvent,
         },
       };
     });
