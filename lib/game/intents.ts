@@ -147,6 +147,12 @@ function applyActivationAbility(state: TurnGameState, actorUid: string, ability:
 }
 
 function rollDieValue(): number {
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    const randomValue = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(randomValue);
+    return (randomValue[0] % 6) + 1;
+  }
+
   return Math.floor(Math.random() * 6) + 1;
 }
 
