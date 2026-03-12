@@ -5,7 +5,7 @@ import type { ActivationAbility, CardId, Effect, FoodToken, Resource, TableauRow
 export type ActivationAnimationStep = {
   stepIndex: number;
   cardId: CardId;
-  rowId: "oasisEdgeRow";
+  rowId: TableauRowId;
   trigger: "onActivate";
   hasAbility: boolean;
   rollOutcome?: {
@@ -20,6 +20,57 @@ export type MoveAnimationPayload = {
   actorUid: string;
   activationSteps: ActivationAnimationStep[];
 };
+
+function resolveRowActivations(
+  state: TurnGameState,
+  actorUid: string,
+  rowId: TableauRowId,
+): { state: TurnGameState; activationSteps: ActivationAnimationStep[] } {
+  const row = state.tableauByPlayerId[actorUid]?.[rowId] ?? [];
+  const orderedCardIds = [...row].reverse();
+
+  let nextState = state;
+  const activationSteps: ActivationAnimationStep[] = orderedCardIds.map((cardId, stepIndex) => {
+    const ability = cardById(cardId)?.onActivate;
+    let rollOutcome: ActivationAnimationStep["rollOutcome"];
+
+    if (ability?.type === "rollDieTuck") {
+      const rolled = rollDieValue();
+      const success = rolled < ability.effect.successIfLessThan;
+      const tuckedCards = success ? ability.effect.onSuccess.tuckCards : 0;
+
+      if (tuckedCards > 0) {
+        nextState = {
+          ...nextState,
+          deck: nextState.deck.slice(Math.min(nextState.deck.length, tuckedCards)),
+        };
+      }
+
+      rollOutcome = {
+        rolled,
+        successIfLessThan: ability.effect.successIfLessThan,
+        success,
+        tuckedCards,
+      };
+    } else if (ability) {
+      nextState = applyActivationAbility(nextState, actorUid, ability);
+    }
+
+    return {
+      stepIndex,
+      cardId,
+      rowId,
+      trigger: "onActivate",
+      hasAbility: Boolean(ability),
+      ...(rollOutcome ? { rollOutcome } : {}),
+    };
+  });
+
+  return {
+    state: nextState,
+    activationSteps,
+  };
+}
 
 export type MoveIntent =
   | {
@@ -419,11 +470,16 @@ export function applyMoveIntent(
 
   if (intent.type === "gainSunToken") {
     const gained = gainSunlightToken(state, actorUid, 1);
+    const activated = resolveRowActivations(gained.game, actorUid, "canopyRow");
 
     return {
       ok: true,
-      state: gained.game,
+      state: activated.state,
       actionCounter: currentActionCounter + 1,
+      animation: {
+        actorUid,
+        activationSteps: activated.activationSteps,
+      },
     };
   }
 
@@ -439,53 +495,15 @@ export function applyMoveIntent(
     };
   }
 
-  const oasisEdgeRow = drawn.game.tableauByPlayerId[actorUid]?.oasisEdgeRow ?? [];
-  const orderedCardIds = [...oasisEdgeRow].reverse();
-
-  let nextState = drawn.game;
-  const activationSteps: ActivationAnimationStep[] = orderedCardIds.map((cardId, stepIndex) => {
-    const ability = cardById(cardId)?.onActivate;
-    let rollOutcome: ActivationAnimationStep["rollOutcome"];
-
-    if (ability?.type === "rollDieTuck") {
-      const rolled = rollDieValue();
-      const success = rolled < ability.effect.successIfLessThan;
-      const tuckedCards = success ? ability.effect.onSuccess.tuckCards : 0;
-
-      if (tuckedCards > 0) {
-        nextState = {
-          ...nextState,
-          deck: nextState.deck.slice(Math.min(nextState.deck.length, tuckedCards)),
-        };
-      }
-
-      rollOutcome = {
-        rolled,
-        successIfLessThan: ability.effect.successIfLessThan,
-        success,
-        tuckedCards,
-      };
-    } else if (ability) {
-      nextState = applyActivationAbility(nextState, actorUid, ability);
-    }
-
-    return {
-      stepIndex,
-      cardId,
-      rowId: "oasisEdgeRow" as const,
-      trigger: "onActivate" as const,
-      hasAbility: Boolean(ability),
-      ...(rollOutcome ? { rollOutcome } : {}),
-    };
-  });
+  const activated = resolveRowActivations(drawn.game, actorUid, "oasisEdgeRow");
 
   return {
     ok: true,
-    state: nextState,
+    state: activated.state,
     actionCounter: currentActionCounter + 1,
     animation: {
       actorUid,
-      activationSteps,
+      activationSteps: activated.activationSteps,
     },
   };
 }
