@@ -22,6 +22,12 @@ type RoomDoc = {
         rowId: "oasisEdgeRow";
         trigger: "onActivate";
         hasAbility: boolean;
+        rollOutcome?: {
+          rolled: number;
+          successIfLessThan: number;
+          success: boolean;
+          tuckedCards: number;
+        };
       }>;
     } | null;
   };

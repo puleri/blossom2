@@ -470,3 +470,46 @@ pre { white-space: pre-wrap; }
   color: #cbd5e1;
   line-height: 1.35;
 }
+
+.tableau-card.is-tuck-boosted::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  background: rgba(148, 163, 184, 0.1);
+  transform: translateY(4px) skewX(var(--tuck-under-tilt, 0deg));
+  z-index: -1;
+  pointer-events: none;
+}
+
+.dice-roll-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(180px, 28vw, 340px);
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(226, 232, 240, 0.5);
+  text-shadow: 0 10px 32px rgba(2, 6, 23, 0.6);
+  pointer-events: none;
+  z-index: 60;
+  animation: fade-in-fast 120ms ease-out;
+}
+
+.dice-roll-overlay.is-success {
+  color: rgba(74, 222, 128, 0.7);
+  text-shadow: 0 0 18px rgba(74, 222, 128, 0.5), 0 0 42px rgba(22, 163, 74, 0.45);
+}
+
+@keyframes fade-in-fast {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
