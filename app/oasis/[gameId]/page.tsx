@@ -296,6 +296,16 @@ export default function OasisGamePage() {
       }))
       .sort((left, right) => left.stepIndex - right.stepIndex);
   }, [room?.game?.animationEvent]);
+  useEffect(() => {
+    console.log("[choose-one] pending choice changed", {
+      pendingChoice,
+      isSubmitting,
+      currentUid,
+      currentPlayerId: gameState?.currentPlayerId,
+      actionCounter: room?.game?.actionCounter,
+    });
+  }, [pendingChoice, isSubmitting, currentUid, gameState?.currentPlayerId, room?.game?.actionCounter]);
+
   const pendingAnimationSignature = useMemo(() => {
     const event = room?.game?.animationEvent;
     if (!event?.activationSteps?.length) {
@@ -449,7 +459,26 @@ export default function OasisGamePage() {
   }, [activationAnimationQueue, activationAnimationStep]);
 
   const handleResolveChoice = async (optionIndex: number) => {
+    console.log("[choose-one] resolve requested", {
+      optionIndex,
+      hasGameState: Boolean(gameState),
+      hasRoomGame: Boolean(room?.game),
+      isSubmitting,
+      hasPendingChoice: Boolean(pendingChoice),
+      currentUid,
+      currentPlayerId: gameState?.currentPlayerId,
+    });
+
     if (!gameState || !room?.game || isSubmitting || !pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
+      console.log("[choose-one] resolve blocked by guard", {
+        hasGameState: Boolean(gameState),
+        hasRoomGame: Boolean(room?.game),
+        isSubmitting,
+        hasPendingChoice: Boolean(pendingChoice),
+        hasCurrentUid: Boolean(currentUid),
+        currentUid,
+        currentPlayerId: gameState?.currentPlayerId,
+      });
       return;
     }
 
@@ -463,6 +492,11 @@ export default function OasisGamePage() {
         expectedActionCounter: room.game.actionCounter,
       });
 
+      console.log("[choose-one] resolve response", {
+        ok: result.ok,
+        error: result.ok ? null : result.error,
+      });
+
       if (!result.ok) {
         setError(result.error.message);
         return;
@@ -470,6 +504,7 @@ export default function OasisGamePage() {
 
       setStatus("Choice resolved.");
     } catch (submitError) {
+      console.log("[choose-one] resolve threw", submitError);
       setError(submitError instanceof Error ? submitError.message : "Unable to resolve choice.");
     } finally {
       setIsSubmitting(false);

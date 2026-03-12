@@ -285,6 +285,13 @@ export function applyMoveIntent(
   }
 
   if (state.pendingChoice && intent.type !== "resolveChoice") {
+    console.log("[choose-one] blocked non-resolve intent while pending choice", {
+      intentType: intent.type,
+      actorUid,
+      pendingChoicePlayerId: state.pendingChoice.playerId,
+      pendingChoiceCardId: state.pendingChoice.cardId,
+    });
+
     return {
       ok: false,
       error: {
@@ -295,6 +302,13 @@ export function applyMoveIntent(
   }
 
   if (intent.type === "resolveChoice") {
+    console.log("[choose-one] resolving choice", {
+      actorUid,
+      hasPendingChoice: Boolean(state.pendingChoice),
+      pendingChoicePlayerId: state.pendingChoice?.playerId,
+      pendingChoiceCardId: state.pendingChoice?.cardId,
+      optionIndex: intent.optionIndex,
+    });
     const pendingChoice = state.pendingChoice;
     if (!pendingChoice || pendingChoice.playerId !== actorUid) {
       return {
@@ -308,6 +322,10 @@ export function applyMoveIntent(
 
     const selectedOption = pendingChoice.options[intent.optionIndex];
     if (!selectedOption) {
+      console.log("[choose-one] invalid choice option", {
+        optionIndex: intent.optionIndex,
+        optionCount: pendingChoice.options.length,
+      });
       return {
         ok: false,
         error: {
@@ -328,6 +346,12 @@ export function applyMoveIntent(
     );
 
     const nextState = resolvedState.pendingChoice ? resolvedState : endTurn(resolvedState);
+
+    console.log("[choose-one] choice resolved", {
+      stillPendingChoice: Boolean(nextState.pendingChoice),
+      nextCurrentPlayerId: nextState.currentPlayerId,
+      nextTurn: nextState.turn,
+    });
 
     return {
       ok: true,

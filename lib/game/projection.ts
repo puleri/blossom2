@@ -19,7 +19,7 @@ export type ProjectedPlayerState = {
 };
 
 export type ProjectedTurnGameState = {
-  pendingChoice?: {
+  pendingChoice: {
     cardId: CardId;
     trigger: "onPlay";
     options: Array<{ label: string }>;
@@ -139,15 +139,14 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
   diagnostics.push(...hydratedTray.diagnostics);
 
   return {
-    ...(state.pendingChoice && state.pendingChoice.playerId === viewerUid
-      ? {
-          pendingChoice: {
+    pendingChoice:
+      state.pendingChoice && state.pendingChoice.playerId === viewerUid
+        ? {
             cardId: state.pendingChoice.cardId,
             trigger: state.pendingChoice.trigger,
             options: state.pendingChoice.options.map((option) => ({ label: option.label })),
-          },
-        }
-      : {}),
+          }
+        : null,
     gameId: state.gameId,
     createdAt: state.createdAt,
     seed: state.seed,
