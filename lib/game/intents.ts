@@ -1,5 +1,6 @@
+import { EXPANDED_DECK } from "./cards";
 import { drawDeckCardToHand, endTurn, gainSunlightToken, playCardToRow, takeFoodTokenToInventory } from "./rules";
-import type { TableauRowId, TurnGameState } from "../types";
+import type { ActivationAbility, CardId, TableauRowId, TurnGameState } from "../types";
 
 export type MoveIntent =
   | {
@@ -41,6 +42,34 @@ export type MoveResult =
         message: string;
       };
     };
+
+
+
+function cardById(cardId: CardId) {
+  return EXPANDED_DECK.find((card) => card.id === cardId);
+}
+
+function applyActivationAbility(state: TurnGameState, actorUid: string, ability: ActivationAbility): TurnGameState {
+  if (ability.type === "gainSun") {
+    return gainSunlightToken(state, actorUid, ability.effect.amount).game;
+  }
+
+  if (ability.type === "drawCards") {
+    let nextState = state;
+    for (let index = 0; index < ability.effect.draw; index += 1) {
+      const drawn = drawDeckCardToHand(nextState, actorUid);
+      if (!drawn.card) {
+        break;
+      }
+
+      nextState = drawn.game;
+    }
+
+    return nextState;
+  }
+
+  return state;
+}
 
 export function applyMoveIntent(
   state: TurnGameState,
@@ -133,9 +162,37 @@ export function applyMoveIntent(
     };
   }
 
+  const oasisEdgeRow = drawn.game.tableauByPlayerId[actorUid]?.oasisEdgeRow ?? [];
+  const orderedCardIds = [...oasisEdgeRow].reverse();
+
+  let nextState = drawn.game;
+  const activationSteps = orderedCardIds.map((cardId, stepIndex) => {
+    const ability = cardById(cardId)?.onActivate;
+
+    if (ability) {
+      nextState = applyActivationAbility(nextState, actorUid, ability);
+    }
+
+    return {
+      stepIndex,
+      cardId,
+      rowId: "oasisEdgeRow" as const,
+      trigger: "onActivate" as const,
+      hasAbility: Boolean(ability),
+      abilityType: ability?.type,
+    };
+  });
+
   return {
     ok: true,
-    state: drawn.game,
+    state: {
+      ...nextState,
+      lastResolution: {
+        moveType: "drawCard",
+        actorUid,
+        activationSteps,
+      },
+    },
     actionCounter: currentActionCounter + 1,
   };
 }
