@@ -230,6 +230,53 @@ describe("applyMoveIntent", () => {
   });
 
 
+  it("draw resolves oasis edge activations bottom-to-top with mixed abilities", () => {
+    const drawAbilityCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "drawCards");
+    const gainSunCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "gainSun");
+    const noAbilityCard = EXPANDED_DECK.find((card) => !card.onActivate && card.biomes.includes("oasisEdge"));
+
+    expect(drawAbilityCard).toBeDefined();
+    expect(gainSunCard).toBeDefined();
+    expect(noAbilityCard).toBeDefined();
+
+    const gameWithRow = {
+      ...game,
+      deck: ["d1", "d2", "d3", "d4", ...game.deck],
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          oasisEdgeRow: [drawAbilityCard!.id, noAbilityCard!.id, gainSunCard!.id],
+        },
+      },
+    };
+
+    const result = applyMoveIntent(
+      gameWithRow,
+      {
+        type: "drawCard",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.actionCounter).toBe(1);
+      expect(result.state.lastResolution?.activationSteps.map((step) => step.cardId)).toEqual([
+        gainSunCard!.id,
+        noAbilityCard!.id,
+        drawAbilityCard!.id,
+      ]);
+      expect(result.state.lastResolution?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
+      expect(result.state.sunlightByPlayerId?.p1).toBe(2);
+      expect(result.state.handsByPlayerId.p1.slice(-3)).toEqual(["d1", "d2", "d3"]);
+      expect(result.state.deck[0]).toBe("d4");
+    }
+  });
+
   it("draws a card into the active player's hand without ending turn", () => {
     const result = applyMoveIntent(
       game,
