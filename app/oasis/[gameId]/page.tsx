@@ -130,6 +130,16 @@ type RoomSnapshotResponse =
   | { ok: true; room: RoomDoc }
   | { ok: false; error: { code: "NOT_AUTHENTICATED" | "INVALID_ACTION"; message: string } };
 
+type PendingActivationAnimation = {
+  cardId: string;
+  rowId: TableauRowId;
+  stepIndex: number;
+  hasAbility: boolean;
+  trigger?: "onActivate";
+  actorUid?: string;
+  playerId?: string;
+};
+
 function buildOptimisticRoom(
   room: RoomDoc,
   playerId: string,
@@ -184,6 +194,8 @@ export default function OasisGamePage() {
   const [foodCacheHoverPlayerId, setFoodCacheHoverPlayerId] = useState<string | null>(null);
   const [sunHoverPlayerId, setSunHoverPlayerId] = useState<string | null>(null);
   const [hoveredHandCardId, setHoveredHandCardId] = useState<string | null>(null);
+  const [activationAnimationQueue, setActivationAnimationQueue] = useState<PendingActivationAnimation[]>([]);
+  const [activationAnimationStep, setActivationAnimationStep] = useState(-1);
 
   useEffect(() => {
     if (!gameId) {
@@ -282,6 +294,71 @@ export default function OasisGamePage() {
   );
   const currentPlayerHand = currentPlayerState?.hand ?? [];
   const currentPlayerSunTokens = currentPlayerState?.sunlightTokens ?? 0;
+  const projectedPendingAnimations = useMemo(() => {
+    const projectedState = gameState as
+      | (ProjectedTurnGameState & {
+          pendingAnimations?: PendingActivationAnimation[];
+          lastResolution?: {
+            moveType?: "drawCard";
+            actorUid?: string;
+            activationSteps?: PendingActivationAnimation[];
+          };
+        })
+      | null;
+    const pending = projectedState?.pendingAnimations;
+
+    if (Array.isArray(pending) && pending.length) {
+      return [...pending].sort((left, right) => left.stepIndex - right.stepIndex);
+    }
+
+    const fallbackSteps = projectedState?.lastResolution?.activationSteps;
+    if (!Array.isArray(fallbackSteps) || projectedState?.lastResolution?.moveType !== "drawCard") {
+      return [];
+    }
+
+    return [...fallbackSteps]
+      .map((step) => ({
+        ...step,
+        actorUid: step.actorUid ?? projectedState.lastResolution?.actorUid,
+      }))
+      .sort((left, right) => left.stepIndex - right.stepIndex);
+  }, [gameState]);
+  const pendingAnimationSignature = useMemo(
+    () =>
+      projectedPendingAnimations
+        .map((step) => `${step.actorUid ?? step.playerId ?? "unknown"}:${step.rowId}:${step.cardId}:${step.stepIndex}`)
+        .join("|"),
+    [projectedPendingAnimations],
+  );
+
+  useEffect(() => {
+    setActivationAnimationQueue(projectedPendingAnimations);
+    setActivationAnimationStep(projectedPendingAnimations.length ? 0 : -1);
+  }, [pendingAnimationSignature, projectedPendingAnimations]);
+
+  useEffect(() => {
+    if (!activationAnimationQueue.length || activationAnimationStep < 0) {
+      return;
+    }
+
+    if (activationAnimationStep >= activationAnimationQueue.length - 1) {
+      const clearTimer = setTimeout(() => {
+        setActivationAnimationStep(-1);
+      }, 450);
+
+      return () => {
+        clearTimeout(clearTimer);
+      };
+    }
+
+    const timer = setTimeout(() => {
+      setActivationAnimationStep((step) => step + 1);
+    }, 280);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [activationAnimationQueue, activationAnimationStep]);
 
   const handlePlayCard = async (cardId: string, rowId: TableauRowId) => {
     if (!gameState || !room?.game || isSubmitting || currentUid !== gameState.currentPlayerId) {
@@ -526,14 +603,14 @@ export default function OasisGamePage() {
                         canDropHere && isPlayableRow ? "is-droppable" : ""
                       } ${draggedCardId && isPlayableRow ? "is-drag-over" : ""}`;
 
-                      const isDeckGlowRow = rowId === "oasisEdgeRow" && deckPileHoverPlayerId === playerId;
+                      const isDeckHoverRow = rowId === "oasisEdgeRow" && deckPileHoverPlayerId === playerId;
                       const isFoodCacheGlowRow = rowId === "understoryRow" && foodCacheHoverPlayerId === playerId;
                       const isSunGlowRow = rowId === "canopyRow" && sunHoverPlayerId === playerId;
 
                       return (
                         <div
                           key={rowId}
-                          className={`activation-row-card ${isDeckGlowRow ? "is-glowing" : ""} ${isFoodCacheGlowRow ? "is-food-cache-glowing" : ""} ${isSunGlowRow ? "is-sun-glowing" : ""}`}
+                          className={`activation-row-card ${isDeckHoverRow ? "is-deck-hover-glowing" : ""} ${isFoodCacheGlowRow ? "is-food-cache-glowing" : ""} ${isSunGlowRow ? "is-sun-glowing" : ""}`}
                         >
                           <div className="activation-row-title-wrap">
                             <p className="activation-row-title">{TABLEAU_ROW_LABELS[rowId]}</p>
@@ -588,9 +665,25 @@ export default function OasisGamePage() {
                           >
                             {rowCards.map((card) => {
                               const abilityText = describePlantAbility(card);
+                              const animationStep = activationAnimationQueue.find(
+                                (step) =>
+                                  step.cardId === card.id &&
+                                  step.rowId === rowId &&
+                                  (step.actorUid === playerId || step.playerId === playerId),
+                              );
+                              const isActiveAnimationStep =
+                                animationStep && activationAnimationStep === animationStep.stepIndex;
+                              const activationGlowClassName = animationStep
+                                ? animationStep.hasAbility
+                                  ? "is-activation-glow-blue"
+                                  : "is-activation-glow-orange"
+                                : "";
 
                               return (
-                                <div key={`${playerId}-${rowId}-${card.id}`} className="tableau-card">
+                                <div
+                                  key={`${playerId}-${rowId}-${card.id}`}
+                                  className={`tableau-card ${activationGlowClassName} ${isActiveAnimationStep ? "is-activation-glow-active" : ""}`}
+                                >
                                   <CardFoodDots card={card} />
                                   <CardBiomeBars biomes={card.biomes} />
                                   <strong>{card.name}</strong>
