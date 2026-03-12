@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -205,8 +205,15 @@ export default function OasisGamePage() {
   const [hoveredHandCardId, setHoveredHandCardId] = useState<string | null>(null);
   const [activationAnimationQueue, setActivationAnimationQueue] = useState<PendingActivationAnimation[]>([]);
   const [activationAnimationStep, setActivationAnimationStep] = useState(-1);
+  const [permanentTuckCountsByCardKey, setPermanentTuckCountsByCardKey] = useState<Record<string, number>>({});
   const [diceDisplayValue, setDiceDisplayValue] = useState<number | null>(null);
   const [diceDisplayPhase, setDiceDisplayPhase] = useState<"rolling" | "settled" | "success" | null>(null);
+  const processedAnimationSequenceIdsRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    setPermanentTuckCountsByCardKey({});
+    processedAnimationSequenceIdsRef.current.clear();
+  }, [gameId]);
 
   useEffect(() => {
     if (!gameId) {
@@ -304,6 +311,38 @@ export default function OasisGamePage() {
     setActivationAnimationQueue(projectedPendingAnimations);
     setActivationAnimationStep(projectedPendingAnimations.length ? 0 : -1);
   }, [pendingAnimationSignature, projectedPendingAnimations]);
+
+  useEffect(() => {
+    const event = room?.game?.animationEvent;
+    if (!event?.activationSteps?.length) {
+      return;
+    }
+
+    if (processedAnimationSequenceIdsRef.current.has(event.sequenceId)) {
+      return;
+    }
+
+    processedAnimationSequenceIdsRef.current.add(event.sequenceId);
+
+    setPermanentTuckCountsByCardKey((previous) => {
+      let didUpdate = false;
+      const next = { ...previous };
+
+      for (const step of event.activationSteps) {
+        const tuckedCards = step.rollOutcome?.tuckedCards ?? 0;
+        if (tuckedCards <= 0) {
+          continue;
+        }
+
+        const playerId = step.playerId ?? event.actorUid;
+        const cardKey = `${playerId}:${step.rowId}:${step.cardId}`;
+        next[cardKey] = (next[cardKey] ?? 0) + tuckedCards;
+        didUpdate = true;
+      }
+
+      return didUpdate ? next : previous;
+    });
+  }, [room?.game?.animationEvent]);
 
   useEffect(() => {
     if (!activationAnimationQueue.length || activationAnimationStep < 0) {
@@ -726,7 +765,7 @@ export default function OasisGamePage() {
                                   ? "is-activation-glow-blue"
                                   : "is-activation-glow-orange"
                                 : "";
-                              const tuckCards = activationAnimationQueue
+                              const animationTuckCards = activationAnimationQueue
                                 .filter(
                                   (step) =>
                                     step.stepIndex <= activationAnimationStep &&
@@ -735,6 +774,9 @@ export default function OasisGamePage() {
                                     (step.actorUid === playerId || step.playerId === playerId),
                                 )
                                 .reduce((sum, step) => sum + (step.rollOutcome?.tuckedCards ?? 0), 0);
+                              const permanentTuckCards =
+                                permanentTuckCountsByCardKey[`${playerId}:${rowId}:${card.id}`] ?? 0;
+                              const tuckCards = Math.max(permanentTuckCards, animationTuckCards);
                               const tuckScale = 1 + tuckCards * 0.005;
                               const tuckUnderCardTilt =
                                 card.id
