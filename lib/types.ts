@@ -124,6 +124,13 @@ export type TurnGameState = {
   foodCache: FoodToken[];
   foodByPlayerId?: Record<string, FoodToken[]>;
   sunlightByPlayerId?: Record<string, number>;
+  pendingChoice?: {
+    playerId: string;
+    cardId: CardId;
+    trigger: "onPlay";
+    options: Array<{ label: string; effects: Effect[] }>;
+    remainingEffects: Effect[];
+  } | null;
   lastAction?: ActionType;
 };
 

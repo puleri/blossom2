@@ -170,13 +170,16 @@ describe("applyMoveIntent", () => {
       expect(result.state.handsByPlayerId.p1).toEqual([]);
     }
   });
-  it("plays a card, then advances turn and action counter on valid intent", () => {
+  it("plays a non-choice card, then advances turn and action counter on valid intent", () => {
+    const turnEndingCard = game.handsByPlayerId.p1.find((cardId) => !cardById(cardId).onPlay);
+    expect(turnEndingCard).toBeDefined();
+
     const result = applyMoveIntent(
       game,
       {
         type: "playCard",
-        cardId: game.handsByPlayerId.p1[0],
-        rowId: rowForCard(game.handsByPlayerId.p1[0]),
+        cardId: turnEndingCard!,
+        rowId: rowForCard(turnEndingCard!),
         expectedTurn: 1,
         expectedActionCounter: 0,
       },
@@ -190,9 +193,9 @@ describe("applyMoveIntent", () => {
       expect(result.state.currentPlayerId).toBe("p2");
       expect(result.actionCounter).toBe(1);
       expect(result.state.handsByPlayerId.p1.length).toBe(game.handsByPlayerId.p1.length - 1);
-      const targetRowId = rowForCard(game.handsByPlayerId.p1[0]);
+      const targetRowId = rowForCard(turnEndingCard!);
       const targetRow = result.state.tableauByPlayerId.p1[targetRowId];
-      expect(targetRow[targetRow.length - 1]).toBe(game.handsByPlayerId.p1[0]);
+      expect(targetRow[targetRow.length - 1]).toBe(turnEndingCard);
     }
   });
 
@@ -417,6 +420,130 @@ describe("applyMoveIntent", () => {
       {
         type: "takeFoodToken",
         cacheIndex: game.foodCache.length,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("INVALID_ACTION");
+    }
+  });
+
+
+  it("plays on-play choice cards by opening a pending choice instead of ending turn", () => {
+    const choiceCard = EXPANDED_DECK.find((card) => card.onPlay?.effects.some((effect) => effect.type === "choice"));
+    expect(choiceCard).toBeDefined();
+
+    const gameWithChoiceCard = {
+      ...game,
+      handsByPlayerId: {
+        ...game.handsByPlayerId,
+        p1: [choiceCard!.id],
+      },
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          [rowForCard(choiceCard!.id)]: [],
+        },
+      },
+    };
+
+    const result = applyMoveIntent(
+      gameWithChoiceCard,
+      {
+        type: "playCard",
+        cardId: choiceCard!.id,
+        rowId: rowForCard(choiceCard!.id),
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.pendingChoice?.cardId).toBe(choiceCard!.id);
+      expect(result.state.currentPlayerId).toBe("p1");
+      expect(result.state.turn).toBe(1);
+    }
+  });
+
+  it("resolves on-play choice and then ends turn", () => {
+    const choiceCard = EXPANDED_DECK.find((card) => card.onPlay?.effects.some((effect) => effect.type === "choice"));
+    expect(choiceCard).toBeDefined();
+
+    const played = applyMoveIntent(
+      {
+        ...game,
+        handsByPlayerId: {
+          ...game.handsByPlayerId,
+          p1: [choiceCard!.id],
+        },
+      },
+      {
+        type: "playCard",
+        cardId: choiceCard!.id,
+        rowId: rowForCard(choiceCard!.id),
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(played.ok).toBe(true);
+    if (!played.ok) {
+      return;
+    }
+
+    const resolved = applyMoveIntent(
+      played.state,
+      {
+        type: "resolveChoice",
+        optionIndex: 1,
+        expectedTurn: 1,
+        expectedActionCounter: 1,
+      },
+      "p1",
+      1,
+    );
+
+    expect(resolved.ok).toBe(true);
+    if (resolved.ok) {
+      expect(resolved.state.pendingChoice).toBeNull();
+      expect(resolved.state.sunlightByPlayerId?.p1).toBe(1);
+      expect(resolved.state.currentPlayerId).toBe("p2");
+      expect(resolved.state.turn).toBe(2);
+    }
+  });
+
+  it("blocks other actions while a choice is pending", () => {
+    const pendingChoiceState = {
+      ...game,
+      pendingChoice: {
+        playerId: "p1",
+        cardId: "moon-willow-2-1",
+        trigger: "onPlay" as const,
+        options: [
+          {
+            label: "Gain 1 sunlight",
+            effects: [{ type: "gainSunlight" as const, amount: 1 }],
+          },
+        ],
+        remainingEffects: [],
+      },
+    };
+
+    const result = applyMoveIntent(
+      pendingChoiceState,
+      {
+        type: "drawCard",
         expectedTurn: 1,
         expectedActionCounter: 0,
       },

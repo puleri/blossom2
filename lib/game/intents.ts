@@ -1,6 +1,6 @@
 import { EXPANDED_DECK } from "./cards";
 import { drawDeckCardToHand, endTurn, gainSunlightToken, playCardToRow, takeFoodTokenToInventory } from "./rules";
-import type { ActivationAbility, CardId, FoodToken, Resource, TableauRowId, TurnGameState } from "../types";
+import type { ActivationAbility, CardId, Effect, FoodToken, Resource, TableauRowId, TurnGameState } from "../types";
 
 export type ActivationAnimationStep = {
   stepIndex: number;
@@ -26,6 +26,12 @@ export type MoveIntent =
       type: "playCard";
       cardId: string;
       rowId: TableauRowId;
+      expectedTurn: number;
+      expectedActionCounter: number;
+    }
+  | {
+      type: "resolveChoice";
+      optionIndex: number;
       expectedTurn: number;
       expectedActionCounter: number;
     }
@@ -62,8 +68,6 @@ export type MoveResult =
         message: string;
       };
     };
-
-
 
 function cardById(cardId: CardId) {
   return EXPANDED_DECK.find((card) => card.id === cardId);
@@ -111,6 +115,104 @@ function applyResourceGain(
   }
 
   return gainFoodTokens(state, playerId, token, amount);
+}
+
+function evaluateCondition(state: TurnGameState, actorUid: string, condition: Extract<Effect, { type: "if" }>["condition"]): boolean {
+  const leftValue = (() => {
+    if (condition.left === "sunlight") {
+      return state.sunlightByPlayerId?.[actorUid] ?? 0;
+    }
+
+    const resourcePrefix = "resource.";
+    if (condition.left.startsWith(resourcePrefix)) {
+      const resource = condition.left.slice(resourcePrefix.length) as Resource;
+      const token = FOOD_TOKEN_BY_RESOURCE[resource];
+      if (!token) {
+        return 0;
+      }
+
+      const inventory = state.foodByPlayerId?.[actorUid] ?? [];
+      return inventory.filter((entry) => entry === token).length;
+    }
+
+    return 0;
+  })();
+
+  const rightValue = typeof condition.right === "number" ? condition.right : Number.NaN;
+
+  switch (condition.operator) {
+    case "==":
+      return leftValue === condition.right;
+    case "!=":
+      return leftValue !== condition.right;
+    case ">":
+      return leftValue > rightValue;
+    case ">=":
+      return leftValue >= rightValue;
+    case "<":
+      return leftValue < rightValue;
+    case "<=":
+      return leftValue <= rightValue;
+    default:
+      return false;
+  }
+}
+
+function runEffects(
+  state: TurnGameState,
+  actorUid: string,
+  sourceCardId: CardId,
+  effects: Effect[],
+): TurnGameState {
+  let nextState = state;
+
+  for (let index = 0; index < effects.length; index += 1) {
+    const effect = effects[index];
+
+    if (effect.type === "gainResource") {
+      nextState = applyResourceGain(nextState, actorUid, effect.resource, effect.amount);
+      continue;
+    }
+
+    if (effect.type === "gainSunlight") {
+      nextState = gainSunlightToken(nextState, actorUid, effect.amount).game;
+      continue;
+    }
+
+    if (effect.type === "if") {
+      const branch = evaluateCondition(nextState, actorUid, effect.condition) ? effect.then : (effect.else ?? []);
+      const branchState = runEffects(nextState, actorUid, sourceCardId, branch);
+
+      if (branchState.pendingChoice) {
+        const remainingEffects = effects.slice(index + 1);
+        return {
+          ...branchState,
+          pendingChoice: {
+            ...branchState.pendingChoice,
+            remainingEffects: [...branchState.pendingChoice.remainingEffects, ...remainingEffects],
+          },
+        };
+      }
+
+      nextState = branchState;
+      continue;
+    }
+
+    if (effect.type === "choice") {
+      return {
+        ...nextState,
+        pendingChoice: {
+          playerId: actorUid,
+          cardId: sourceCardId,
+          trigger: "onPlay",
+          options: effect.options,
+          remainingEffects: effects.slice(index + 1),
+        },
+      };
+    }
+  }
+
+  return nextState;
 }
 
 function applyActivationAbility(state: TurnGameState, actorUid: string, ability: ActivationAbility): TurnGameState {
@@ -182,6 +284,58 @@ export function applyMoveIntent(
     };
   }
 
+  if (state.pendingChoice && intent.type !== "resolveChoice") {
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_ACTION",
+        message: "Resolve the pending card choice first.",
+      },
+    };
+  }
+
+  if (intent.type === "resolveChoice") {
+    const pendingChoice = state.pendingChoice;
+    if (!pendingChoice || pendingChoice.playerId !== actorUid) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "There is no choice to resolve.",
+        },
+      };
+    }
+
+    const selectedOption = pendingChoice.options[intent.optionIndex];
+    if (!selectedOption) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "Invalid choice option.",
+        },
+      };
+    }
+
+    const resolvedState = runEffects(
+      {
+        ...state,
+        pendingChoice: null,
+      },
+      actorUid,
+      pendingChoice.cardId,
+      [...selectedOption.effects, ...pendingChoice.remainingEffects],
+    );
+
+    const nextState = resolvedState.pendingChoice ? resolvedState : endTurn(resolvedState);
+
+    return {
+      ok: true,
+      state: nextState,
+      actionCounter: currentActionCounter + 1,
+    };
+  }
+
   if (intent.type === "playCard") {
     const played = playCardToRow(state, actorUid, intent.cardId, intent.rowId);
 
@@ -195,7 +349,22 @@ export function applyMoveIntent(
       };
     }
 
-    const nextState = endTurn(played.game);
+    const onPlayEffects = cardById(played.card)?.onPlay?.effects ?? [];
+    const postOnPlayState = onPlayEffects.length
+      ? runEffects(
+          {
+            ...played.game,
+            pendingChoice: null,
+          },
+          actorUid,
+          played.card,
+          onPlayEffects,
+        )
+      : {
+          ...played.game,
+          pendingChoice: null,
+        };
+    const nextState = postOnPlayState.pendingChoice ? postOnPlayState : endTurn(postOnPlayState);
 
     return {
       ok: true,
@@ -203,7 +372,6 @@ export function applyMoveIntent(
       actionCounter: currentActionCounter + 1,
     };
   }
-
 
   if (intent.type === "takeFoodToken") {
     const taken = takeFoodTokenToInventory(state, actorUid, intent.cacheIndex);
