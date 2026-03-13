@@ -637,7 +637,6 @@ export default function OasisGamePage() {
 
   return (
     <main className={isInGame ? "oasis-game-main with-hand-panel" : "oasis-game-main"}>
-      <h1>Oasis Game: {gameId}</h1>
       <p>{status}</p>
 
       {roomMissing ? <p>game not found</p> : null}
