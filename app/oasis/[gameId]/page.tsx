@@ -608,6 +608,46 @@ export default function OasisGamePage() {
     }
   };
 
+  const canRerollFoodCache = Boolean(
+    gameState &&
+      (gameState.foodCache.length === 0 || new Set(gameState.foodCache).size === 1),
+  );
+
+  const handleRerollFoodCache = async () => {
+    if (
+      !gameState ||
+      !room?.game ||
+      isSubmitting ||
+      pendingChoice ||
+      !currentUid ||
+      currentUid !== gameState.currentPlayerId ||
+      !canRerollFoodCache
+    ) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const result = await submitMoveIntent(gameId, {
+        type: "rerollFoodCache",
+        expectedTurn: gameState.turn,
+        expectedActionCounter: room.game.actionCounter,
+      });
+
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+
+      setStatus("Food cache rerolled.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to reroll food cache.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleGainSunToken = async () => {
     if (!gameState || !room?.game || isSubmitting || pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
       return;
@@ -689,6 +729,17 @@ export default function OasisGamePage() {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              className="food-cache-title-button"
+              onClick={() => {
+                void handleRerollFoodCache();
+              }}
+              disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting || !canRerollFoodCache}
+              aria-label="Reroll food cache"
+            >
+              Reroll cache
+            </button>
           </aside>
 
           <button

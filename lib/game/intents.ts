@@ -1,5 +1,5 @@
 import { EXPANDED_DECK } from "./cards";
-import { drawDeckCardToHand, endTurn, gainSunlightToken, playCardToRow, takeFoodTokenToInventory } from "./rules";
+import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, playCardToRow, rerollFoodCache, takeFoodTokenToInventory } from "./rules";
 import type { ActivationAbility, CardId, Effect, FoodToken, Resource, TableauRowId, TurnGameState } from "../types";
 
 export type ActivationAnimationStep = {
@@ -99,6 +99,11 @@ export type MoveIntent =
     }
   | {
       type: "gainSunToken";
+      expectedTurn: number;
+      expectedActionCounter: number;
+    }
+  | {
+      type: "rerollFoodCache";
       expectedTurn: number;
       expectedActionCounter: number;
     };
@@ -471,6 +476,25 @@ export function applyMoveIntent(
         actorUid,
         activationSteps: activated.activationSteps,
       },
+    };
+  }
+
+
+  if (intent.type === "rerollFoodCache") {
+    if (!canRerollFoodCache(state)) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "Food cache cannot be rerolled right now.",
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      state: rerollFoodCache(state),
+      actionCounter: currentActionCounter + 1,
     };
   }
 

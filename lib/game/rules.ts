@@ -16,6 +16,25 @@ function rollFoodCache(count = FOOD_TOKEN_COUNT): FoodToken[] {
   return Array.from({ length: count }, () => rollFoodToken());
 }
 
+export function canRerollFoodCache(game: TurnGameState): boolean {
+  if (game.foodCache.length === 0) {
+    return true;
+  }
+
+  return new Set(game.foodCache).size === 1;
+}
+
+export function rerollFoodCache(game: TurnGameState): TurnGameState {
+  if (!canRerollFoodCache(game)) {
+    return game;
+  }
+
+  return {
+    ...game,
+    foodCache: rollFoodCache(),
+  };
+}
+
 function createEmptyTableau(): Record<TableauRowId, CardId[]> {
   return {
     understoryRow: [],
@@ -249,7 +268,7 @@ export function getNextPlayerId(game: TurnGameState): string {
 }
 
 export function endTurn(game: TurnGameState): TurnGameState {
-  const nextFoodCache = game.foodCache.length === 0 ? rollFoodCache() : game.foodCache;
+  const nextFoodCache = canRerollFoodCache(game) ? rollFoodCache() : game.foodCache;
 
   return {
     ...game,
