@@ -707,8 +707,14 @@ export default function OasisGamePage() {
                   return;
                 }
 
-                setFoodCacheHoverPlayerId(currentUid);
+                const firstCacheIndex = gameState.foodCache.findIndex((value) => value > 0);
+                if (firstCacheIndex < 0) {
+                  return;
+                }
+
+                void handleTakeFoodToken(firstCacheIndex);
               }}
+              disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
               aria-label="Activate understory row"
             >
               Food cache
