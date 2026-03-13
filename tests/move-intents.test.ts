@@ -467,6 +467,62 @@ describe("applyMoveIntent", () => {
     }
   });
 
+  it("take food resolves understory activations bottom-to-top with mixed abilities", () => {
+    const drawAbilityCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "drawCards" && card.biomes.includes("understory"));
+    const gainSunCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "gainSun" && card.biomes.includes("understory"));
+    const noAbilityCard = EXPANDED_DECK.find((card) => !card.onActivate && card.biomes.includes("understory"));
+    const drawAmount = drawAbilityCard?.onActivate?.type === "drawCards" ? drawAbilityCard.onActivate.effect.draw : 0;
+
+    expect(drawAbilityCard).toBeDefined();
+    expect(gainSunCard).toBeDefined();
+    expect(noAbilityCard).toBeDefined();
+
+    const gameWithRow = {
+      ...game,
+      deck: ["d1", "d2", ...game.deck],
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          understoryRow: [drawAbilityCard!.id, noAbilityCard!.id, gainSunCard!.id],
+        },
+      },
+    };
+
+    const result = applyMoveIntent(
+      gameWithRow,
+      {
+        type: "takeFoodToken",
+        cacheIndex: 0,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.actionCounter).toBe(1);
+      expect(result.animation?.activationSteps.map((step) => step.cardId)).toEqual([
+        gainSunCard!.id,
+        noAbilityCard!.id,
+        drawAbilityCard!.id,
+      ]);
+      expect(result.animation?.activationSteps.map((step) => step.rowId)).toEqual([
+        "understoryRow",
+        "understoryRow",
+        "understoryRow",
+      ]);
+      expect(result.animation?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
+      expect(result.state.foodByPlayerId?.p1).toEqual([gameWithRow.foodCache[0]]);
+      expect(result.state.sunlightByPlayerId?.p1).toBe(gainSunCard!.onActivate?.type === "gainSun" ? gainSunCard!.onActivate.effect.amount : 0);
+      expect(result.state.handsByPlayerId.p1.slice(-drawAmount)).toEqual(gameWithRow.deck.slice(0, drawAmount));
+      expect(result.state.deck[0]).toBe(gameWithRow.deck[drawAmount]);
+    }
+  });
+
+
   it("rejects taking a food token when cache index is out of bounds", () => {
     const result = applyMoveIntent(
       game,

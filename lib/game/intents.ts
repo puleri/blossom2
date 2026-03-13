@@ -461,10 +461,16 @@ export function applyMoveIntent(
       };
     }
 
+    const activated = resolveRowActivations(taken.game, actorUid, "understoryRow");
+
     return {
       ok: true,
-      state: taken.game,
+      state: activated.state,
       actionCounter: currentActionCounter + 1,
+      animation: {
+        actorUid,
+        activationSteps: activated.activationSteps,
+      },
     };
   }
 
