@@ -658,7 +658,22 @@ export default function OasisGamePage() {
             onMouseEnter={() => setFoodCacheHoverPlayerId(currentUid)}
             onMouseLeave={() => setFoodCacheHoverPlayerId((value) => (value === currentUid ? null : value))}
           >
-            <p className="food-cache-title">Food cache</p>
+            <button
+              type="button"
+              className="food-cache-title-button"
+              onMouseEnter={() => setFoodCacheHoverPlayerId(currentUid)}
+              onMouseLeave={() => setFoodCacheHoverPlayerId((value) => (value === currentUid ? null : value))}
+              onClick={() => {
+                if (!currentUid) {
+                  return;
+                }
+
+                setFoodCacheHoverPlayerId(currentUid);
+              }}
+              aria-label="Activate understory row"
+            >
+              Food cache
+            </button>
             <div className="food-cache-tokens">
               {gameState.foodCache.map((value, index) => (
                 <button
