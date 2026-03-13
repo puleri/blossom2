@@ -47,6 +47,20 @@ describe("createGame deck setup", () => {
     expect(game.foodCache.every((token) => ["W", "M", "C", "T", "P"].includes(token))).toBe(true);
   });
 
+  it("automatically rerolls food when the cache has one food type", () => {
+    const players = [
+      { id: "p1", name: "P1" },
+      { id: "p2", name: "P2" },
+    ];
+    const game = createGame("g1", players, 42);
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.4);
+
+    const next = endTurn({ ...game, foodCache: ["W", "W", "W", "W", "W"] });
+
+    expect(next.foodCache).toEqual(["C", "C", "C", "C", "C"]);
+    randomSpy.mockRestore();
+  });
+
   it("automatically rerolls food when the cache is empty", () => {
     const players = [
       { id: "p1", name: "P1" },

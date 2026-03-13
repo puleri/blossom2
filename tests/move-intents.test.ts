@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { applyMoveIntent } from "../lib/game/intents";
 import { EXPANDED_DECK } from "../lib/game/cards";
 import { createGame, takeTrayCard } from "../lib/game/rules";
@@ -522,6 +522,78 @@ describe("applyMoveIntent", () => {
     }
   });
 
+
+
+  it("rerolls food cache when it is empty", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const result = applyMoveIntent(
+      {
+        ...game,
+        foodCache: [],
+      },
+      {
+        type: "rerollFoodCache",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.foodCache).toEqual(["W", "W", "W", "W", "W"]);
+      expect(result.state.currentPlayerId).toBe("p1");
+      expect(result.state.turn).toBe(1);
+      expect(result.actionCounter).toBe(1);
+    }
+
+    randomSpy.mockRestore();
+  });
+
+  it("rerolls food cache when all tokens are the same type", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.2);
+
+    const result = applyMoveIntent(
+      {
+        ...game,
+        foodCache: ["P", "P", "P", "P", "P"],
+      },
+      {
+        type: "rerollFoodCache",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.foodCache).toEqual(["M", "M", "M", "M", "M"]);
+    }
+
+    randomSpy.mockRestore();
+  });
+
+  it("rejects rerolling food cache when it has multiple food types", () => {
+    const result = applyMoveIntent(
+      game,
+      {
+        type: "rerollFoodCache",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("INVALID_ACTION");
+    }
+  });
 
   it("rejects taking a food token when cache index is out of bounds", () => {
     const result = applyMoveIntent(
