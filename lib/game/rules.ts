@@ -233,6 +233,27 @@ export function takeFoodTokenToInventory(
   };
 }
 
+export function getUnderstoryFoodGainAmount(understoryCardCount: number): number {
+  if (understoryCardCount >= 6) {
+    return 4;
+  }
+
+  if (understoryCardCount >= 4) {
+    return 3;
+  }
+
+  if (understoryCardCount >= 2) {
+    return 2;
+  }
+
+  return 1;
+}
+
+export function getPlayerUnderstoryFoodGainAmount(game: TurnGameState, playerId: string): number {
+  const understoryCardCount = game.tableauByPlayerId[playerId]?.understoryRow.length ?? 0;
+  return getUnderstoryFoodGainAmount(understoryCardCount);
+}
+
 
 export function gainSunlightToken(
   game: TurnGameState,

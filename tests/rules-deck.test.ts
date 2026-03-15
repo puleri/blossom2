@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EXPANDED_DECK } from "../lib/game/cards";
-import { createGame, endTurn } from "../lib/game/rules";
+import { createGame, endTurn, getUnderstoryFoodGainAmount } from "../lib/game/rules";
 
 describe("createGame deck setup", () => {
   it("shuffles deterministically for the same seed", () => {
@@ -73,5 +73,19 @@ describe("createGame deck setup", () => {
 
     expect(next.foodCache).toEqual(["W", "W", "W", "W", "W"]);
     randomSpy.mockRestore();
+  });
+});
+
+
+describe("getUnderstoryFoodGainAmount", () => {
+  it("scales food gains by understory card count", () => {
+    expect(getUnderstoryFoodGainAmount(0)).toBe(1);
+    expect(getUnderstoryFoodGainAmount(1)).toBe(1);
+    expect(getUnderstoryFoodGainAmount(2)).toBe(2);
+    expect(getUnderstoryFoodGainAmount(3)).toBe(2);
+    expect(getUnderstoryFoodGainAmount(4)).toBe(3);
+    expect(getUnderstoryFoodGainAmount(5)).toBe(3);
+    expect(getUnderstoryFoodGainAmount(6)).toBe(4);
+    expect(getUnderstoryFoodGainAmount(7)).toBe(4);
   });
 });

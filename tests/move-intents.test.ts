@@ -461,9 +461,113 @@ describe("applyMoveIntent", () => {
     if (result.ok) {
       expect(result.state.foodByPlayerId?.p1).toEqual([tokenAtIndexOne]);
       expect(result.state.foodCache).toEqual(game.foodCache.filter((_, index) => index !== 1));
-      expect(result.state.currentPlayerId).toBe("p1");
-      expect(result.state.turn).toBe(1);
+      expect(result.state.currentPlayerId).toBe("p2");
+      expect(result.state.turn).toBe(2);
+      expect(result.state.pendingFoodGains).toBeNull();
       expect(result.actionCounter).toBe(1);
+    }
+  });
+
+  it("rejects non-food actions while additional food gains are pending", () => {
+    const gameWithTwoUnderstoryCards = {
+      ...game,
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          understoryRow: ["u1", "u2"],
+        },
+      },
+    };
+
+    const firstTake = applyMoveIntent(
+      gameWithTwoUnderstoryCards,
+      {
+        type: "takeFoodToken",
+        cacheIndex: 0,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(firstTake.ok).toBe(true);
+    if (!firstTake.ok) {
+      return;
+    }
+
+    const blocked = applyMoveIntent(
+      firstTake.state,
+      {
+        type: "drawCard",
+        expectedTurn: 1,
+        expectedActionCounter: 1,
+      },
+      "p1",
+      1,
+    );
+
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) {
+      expect(blocked.error.code).toBe("INVALID_ACTION");
+    }
+  });
+
+  it("allows multiple food takes before ending turn when understory has enough cards", () => {
+    const gameWithTwoUnderstoryCards = {
+      ...game,
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          understoryRow: ["u1", "u2"],
+        },
+      },
+    };
+
+    const firstTake = applyMoveIntent(
+      gameWithTwoUnderstoryCards,
+      {
+        type: "takeFoodToken",
+        cacheIndex: 0,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(firstTake.ok).toBe(true);
+    if (!firstTake.ok) {
+      return;
+    }
+
+    expect(firstTake.state.turn).toBe(1);
+    expect(firstTake.state.currentPlayerId).toBe("p1");
+    expect(firstTake.state.pendingFoodGains).toEqual({
+      playerId: "p1",
+      remaining: 1,
+    });
+
+    const secondTake = applyMoveIntent(
+      firstTake.state,
+      {
+        type: "takeFoodToken",
+        cacheIndex: 0,
+        expectedTurn: 1,
+        expectedActionCounter: 1,
+      },
+      "p1",
+      1,
+    );
+
+    expect(secondTake.ok).toBe(true);
+    if (secondTake.ok) {
+      expect(secondTake.state.turn).toBe(2);
+      expect(secondTake.state.currentPlayerId).toBe("p2");
+      expect(secondTake.state.pendingFoodGains).toBeNull();
+      expect(secondTake.state.foodByPlayerId?.p1).toHaveLength(2);
     }
   });
 
@@ -519,6 +623,9 @@ describe("applyMoveIntent", () => {
       expect(result.state.sunlightByPlayerId?.p1).toBe(gainSunCard!.onActivate?.type === "gainSun" ? gainSunCard!.onActivate.effect.amount : 0);
       expect(result.state.handsByPlayerId.p1.slice(-drawAmount)).toEqual(gameWithRow.deck.slice(0, drawAmount));
       expect(result.state.deck[0]).toBe(gameWithRow.deck[drawAmount]);
+      expect(result.state.currentPlayerId).toBe("p1");
+      expect(result.state.turn).toBe(1);
+      expect(result.state.pendingFoodGains).toEqual({ playerId: "p1", remaining: 1 });
     }
   });
 

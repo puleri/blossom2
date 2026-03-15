@@ -1,5 +1,5 @@
 import { EXPANDED_DECK } from "./cards";
-import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, playCardToRow, rerollFoodCache, takeFoodTokenToInventory } from "./rules";
+import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, getPlayerUnderstoryFoodGainAmount, playCardToRow, rerollFoodCache, takeFoodTokenToInventory } from "./rules";
 import type { ActivationAbility, CardId, Effect, FoodToken, Resource, TableauRowId, TurnGameState } from "../types";
 
 export type ActivationAnimationStep = {
@@ -357,6 +357,27 @@ export function applyMoveIntent(
     };
   }
 
+  const pendingFoodGains = state.pendingFoodGains;
+  if (pendingFoodGains && pendingFoodGains.playerId !== actorUid) {
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_ACTION",
+        message: "Another player is currently resolving food gains.",
+      },
+    };
+  }
+
+  if (pendingFoodGains && intent.type !== "takeFoodToken") {
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_ACTION",
+        message: "Continue taking food tokens to finish the root action.",
+      },
+    };
+  }
+
   if (intent.type === "resolveChoice") {
     console.log("[choose-one] resolving choice", {
       actorUid,
@@ -395,13 +416,14 @@ export function applyMoveIntent(
       {
         ...state,
         pendingChoice: null,
+        pendingFoodGains: null,
       },
       actorUid,
       pendingChoice.cardId,
       [...selectedOption.effects, ...pendingChoice.remainingEffects],
     );
 
-    const nextState = resolvedState.pendingChoice ? resolvedState : endTurn(resolvedState);
+    const nextState = resolvedState.pendingChoice ? resolvedState : endTurn({ ...resolvedState, pendingFoodGains: null });
 
     console.log("[choose-one] choice resolved", {
       stillPendingChoice: Boolean(nextState.pendingChoice),
@@ -435,6 +457,7 @@ export function applyMoveIntent(
           {
             ...played.game,
             pendingChoice: null,
+            pendingFoodGains: null,
           },
           actorUid,
           played.card,
@@ -443,8 +466,9 @@ export function applyMoveIntent(
       : {
           ...played.game,
           pendingChoice: null,
+          pendingFoodGains: null,
         };
-    const nextState = postOnPlayState.pendingChoice ? postOnPlayState : endTurn(postOnPlayState);
+    const nextState = postOnPlayState.pendingChoice ? postOnPlayState : endTurn({ ...postOnPlayState, pendingFoodGains: null });
 
     return {
       ok: true,
@@ -454,6 +478,10 @@ export function applyMoveIntent(
   }
 
   if (intent.type === "takeFoodToken") {
+    const totalFoodGains = pendingFoodGains?.remaining
+      ? pendingFoodGains.remaining
+      : getPlayerUnderstoryFoodGainAmount(state, actorUid);
+
     const taken = takeFoodTokenToInventory(state, actorUid, intent.cacheIndex);
 
     if (!taken.token) {
@@ -466,11 +494,28 @@ export function applyMoveIntent(
       };
     }
 
-    const activated = resolveRowActivations(taken.game, actorUid, "understoryRow");
+    const remainingFoodGains = Math.max(0, totalFoodGains - 1);
+    const stateWithFoodProgress: TurnGameState = {
+      ...taken.game,
+      pendingFoodGains:
+        remainingFoodGains > 0
+          ? {
+              playerId: actorUid,
+              remaining: remainingFoodGains,
+            }
+          : null,
+    };
+    const activated = resolveRowActivations(stateWithFoodProgress, actorUid, "understoryRow");
 
     return {
       ok: true,
-      state: activated.state,
+      state:
+        remainingFoodGains > 0
+          ? activated.state
+          : endTurn({
+              ...activated.state,
+              pendingFoodGains: null,
+            }),
       actionCounter: currentActionCounter + 1,
       animation: {
         actorUid,
@@ -493,13 +538,13 @@ export function applyMoveIntent(
 
     return {
       ok: true,
-      state: rerollFoodCache(state),
+      state: { ...rerollFoodCache(state), pendingFoodGains: null },
       actionCounter: currentActionCounter + 1,
     };
   }
 
   if (intent.type === "gainSunToken") {
-    const gained = gainSunlightToken(state, actorUid, 1);
+    const gained = gainSunlightToken({ ...state, pendingFoodGains: null }, actorUid, 1);
     const activated = resolveRowActivations(gained.game, actorUid, "canopyRow");
 
     return {
@@ -513,7 +558,7 @@ export function applyMoveIntent(
     };
   }
 
-  const drawn = drawDeckCardToHand(state, actorUid);
+  const drawn = drawDeckCardToHand({ ...state, pendingFoodGains: null }, actorUid);
 
   if (!drawn.card) {
     return {
