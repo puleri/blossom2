@@ -135,6 +135,10 @@ export type TurnGameState = {
     playerId: string;
     remaining: number;
   } | null;
+  pendingDeckDraws?: {
+    playerId: string;
+    remaining: number;
+  } | null;
   lastAction?: ActionType;
 };
 

@@ -284,6 +284,7 @@ export default function OasisGamePage() {
   const currentPlayerSunTokens = currentPlayerState?.sunlightTokens ?? 0;
   const pendingChoice = gameState?.pendingChoice ?? null;
   const pendingFoodSelection = gameState?.pendingFoodSelection ?? null;
+  const pendingDeckSelection = gameState?.pendingDeckSelection ?? null;
   const projectedPendingAnimations = useMemo(() => {
     const event = room?.game?.animationEvent;
     if (!event?.activationSteps?.length) {
@@ -559,6 +560,10 @@ export default function OasisGamePage() {
       return;
     }
 
+    if (pendingDeckSelection && pendingDeckSelection.remaining <= 0) {
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
@@ -576,6 +581,33 @@ export default function OasisGamePage() {
       setStatus("Card drawn.");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to draw card.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResolveOasisEdge = async () => {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || !pendingDeckSelection || !currentUid || currentUid !== gameState.currentPlayerId) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const result = await submitMoveIntent(gameId, {
+        type: "resolveOasisEdge",
+        expectedTurn: gameState.turn,
+        expectedActionCounter: room.game.actionCounter,
+      });
+
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+
+      setStatus("Oasis Edge activated.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to activate Oasis Edge.");
     } finally {
       setIsSubmitting(false);
     }
@@ -779,12 +811,17 @@ export default function OasisGamePage() {
                 return;
               }
 
+              if (pendingDeckSelection) {
+                void handleResolveOasisEdge();
+                return;
+              }
+
               void handleDrawCard();
             }}
-            disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
+            disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting || Boolean(pendingChoice) || Boolean(pendingFoodSelection)}
             aria-label="Draw a card from the deck"
           >
-            Deck pile
+            {pendingDeckSelection ? `Activate oasis edge (${pendingDeckSelection.remaining} optional draw${pendingDeckSelection.remaining === 1 ? "" : "s"} left)` : "Deck pile"}
           </button>
 
           <button
@@ -796,7 +833,7 @@ export default function OasisGamePage() {
             onClick={() => {
               void handleGainSunToken();
             }}
-            disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
+            disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting || Boolean(pendingChoice) || Boolean(pendingFoodSelection)}
           >
             ☀
           </button>

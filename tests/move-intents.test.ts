@@ -233,7 +233,7 @@ describe("applyMoveIntent", () => {
   });
 
 
-  it("draw resolves oasis edge activations bottom-to-top with mixed abilities", () => {
+  it("draw resolves oasis edge activations after draw selection is completed", () => {
     const drawAbilityCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "drawCards");
     const gainSunCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "gainSun");
     const noAbilityCard = EXPANDED_DECK.find((card) => !card.onActivate && card.biomes.includes("oasisEdge"));
@@ -254,7 +254,7 @@ describe("applyMoveIntent", () => {
       },
     };
 
-    const result = applyMoveIntent(
+    const firstDraw = applyMoveIntent(
       gameWithRow,
       {
         type: "drawCard",
@@ -265,9 +265,29 @@ describe("applyMoveIntent", () => {
       0,
     );
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.actionCounter).toBe(1);
+    expect(firstDraw.ok).toBe(true);
+    if (firstDraw.ok) {
+      expect(firstDraw.actionCounter).toBe(1);
+      expect(firstDraw.animation).toBeUndefined();
+      expect(firstDraw.state.pendingDeckDraws).toEqual({ playerId: "p1", remaining: 1 });
+
+      const result = applyMoveIntent(
+        firstDraw.state,
+        {
+          type: "resolveOasisEdge",
+          expectedTurn: 1,
+          expectedActionCounter: 1,
+        },
+        "p1",
+        1,
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        return;
+      }
+
+      expect(result.actionCounter).toBe(2);
       expect(result.animation?.activationSteps.map((step) => step.cardId)).toEqual([
         gainSunCard!.id,
         noAbilityCard!.id,
@@ -275,8 +295,10 @@ describe("applyMoveIntent", () => {
       ]);
       expect(result.animation?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
       expect(result.state.sunlightByPlayerId?.p1).toBe(2);
-      expect(result.state.handsByPlayerId.p1.slice(-3)).toEqual(["d1", "d2", "d3"]);
+      expect(result.state.handsByPlayerId.p1.slice(-2)).toEqual(["d2", "d3"]);
       expect(result.state.deck[0]).toBe("d4");
+      expect(result.state.currentPlayerId).toBe("p2");
+      expect(result.state.turn).toBe(2);
     }
   });
 
@@ -322,7 +344,7 @@ describe("applyMoveIntent", () => {
     }
   });
 
-  it("draws a card into the active player's hand without ending turn", () => {
+  it("draws a card into the active player's hand and ends turn when draw quota is completed", () => {
     const result = applyMoveIntent(
       game,
       {
@@ -338,9 +360,10 @@ describe("applyMoveIntent", () => {
     if (result.ok) {
       expect(result.state.handsByPlayerId.p1.length).toBe(game.handsByPlayerId.p1.length + 1);
       expect(result.state.deck.length).toBe(game.deck.length - 1);
-      expect(result.state.currentPlayerId).toBe("p1");
-      expect(result.state.turn).toBe(1);
+      expect(result.state.currentPlayerId).toBe("p2");
+      expect(result.state.turn).toBe(2);
       expect(result.actionCounter).toBe(1);
+      expect(result.state.pendingDeckDraws).toBeNull();
     }
   });
 
@@ -439,6 +462,107 @@ describe("applyMoveIntent", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("INVALID_ACTION");
+    }
+  });
+
+  it("allows multiple deck draws before oasis edge resolution when row has enough cards", () => {
+    const gameWithTwoOasisCards = {
+      ...game,
+      deck: ["d1", "d2", "d3", ...game.deck],
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          oasisEdgeRow: ["o1", "o2"],
+        },
+      },
+    };
+
+    const firstDraw = applyMoveIntent(
+      gameWithTwoOasisCards,
+      {
+        type: "drawCard",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(firstDraw.ok).toBe(true);
+    if (!firstDraw.ok) {
+      return;
+    }
+
+    expect(firstDraw.state.turn).toBe(1);
+    expect(firstDraw.state.currentPlayerId).toBe("p1");
+    expect(firstDraw.state.pendingDeckDraws).toEqual({ playerId: "p1", remaining: 1 });
+    expect(firstDraw.animation).toBeUndefined();
+
+    const secondDraw = applyMoveIntent(
+      firstDraw.state,
+      {
+        type: "drawCard",
+        expectedTurn: 1,
+        expectedActionCounter: 1,
+      },
+      "p1",
+      1,
+    );
+
+    expect(secondDraw.ok).toBe(true);
+    if (secondDraw.ok) {
+      expect(secondDraw.state.turn).toBe(2);
+      expect(secondDraw.state.currentPlayerId).toBe("p2");
+      expect(secondDraw.state.pendingDeckDraws).toBeNull();
+      expect(secondDraw.state.handsByPlayerId.p1.slice(-2)).toEqual(["d1", "d2"]);
+      expect(secondDraw.state.deck[0]).toBe("d3");
+      expect(secondDraw.animation).toBeDefined();
+    }
+  });
+
+  it("blocks non-draw actions while additional deck draws are pending", () => {
+    const gameWithTwoOasisCards = {
+      ...game,
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          oasisEdgeRow: ["o1", "o2"],
+        },
+      },
+    };
+
+    const firstDraw = applyMoveIntent(
+      gameWithTwoOasisCards,
+      {
+        type: "drawCard",
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(firstDraw.ok).toBe(true);
+    if (!firstDraw.ok) {
+      return;
+    }
+
+    const blocked = applyMoveIntent(
+      firstDraw.state,
+      {
+        type: "gainSunToken",
+        expectedTurn: 1,
+        expectedActionCounter: 1,
+      },
+      "p1",
+      1,
+    );
+
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) {
+      expect(blocked.error.code).toBe("INVALID_ACTION");
     }
   });
 

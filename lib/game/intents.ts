@@ -1,5 +1,5 @@
 import { EXPANDED_DECK } from "./cards";
-import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, getPlayerUnderstoryFoodGainAmount, playCardToRow, rerollFoodCache, takeFoodTokenToInventory } from "./rules";
+import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, getPlayerOasisEdgeDrawAmount, getPlayerUnderstoryFoodGainAmount, playCardToRow, rerollFoodCache, takeFoodTokenToInventory } from "./rules";
 import type { ActivationAbility, CardId, Effect, FoodToken, Resource, TableauRowId, TurnGameState } from "../types";
 
 export type ActivationAnimationStep = {
@@ -88,6 +88,11 @@ export type MoveIntent =
     }
   | {
       type: "drawCard";
+      expectedTurn: number;
+      expectedActionCounter: number;
+    }
+  | {
+      type: "resolveOasisEdge";
       expectedTurn: number;
       expectedActionCounter: number;
     }
@@ -362,6 +367,27 @@ export function applyMoveIntent(
     };
   }
 
+  const pendingDeckDraws = state.pendingDeckDraws;
+  if (pendingDeckDraws && pendingDeckDraws.playerId !== actorUid) {
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_ACTION",
+        message: "Another player is currently resolving deck draws.",
+      },
+    };
+  }
+
+  if (pendingDeckDraws && intent.type !== "drawCard" && intent.type !== "resolveOasisEdge") {
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_ACTION",
+        message: "Finish the draw selection phase first.",
+      },
+    };
+  }
+
   const pendingFoodGains = state.pendingFoodGains;
   if (pendingFoodGains && pendingFoodGains.playerId !== actorUid) {
     return {
@@ -383,6 +409,34 @@ export function applyMoveIntent(
     };
   }
 
+  if (intent.type === "resolveOasisEdge") {
+    if (!pendingDeckDraws || pendingDeckDraws.playerId !== actorUid) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "No oasis edge activation is ready.",
+        },
+      };
+    }
+
+    const activated = resolveRowActivations({ ...state, pendingDeckDraws: null, pendingFoodGains: null }, actorUid, "oasisEdgeRow");
+
+    return {
+      ok: true,
+      state: endTurn({
+        ...activated.state,
+        pendingDeckDraws: null,
+        pendingFoodGains: null,
+      }),
+      actionCounter: currentActionCounter + 1,
+      animation: {
+        actorUid,
+        activationSteps: activated.activationSteps,
+      },
+    };
+  }
+
   if (intent.type === "activateUnderstory") {
     if (!pendingFoodGains || pendingFoodGains.playerId !== actorUid) {
       return {
@@ -394,12 +448,13 @@ export function applyMoveIntent(
       };
     }
 
-    const activated = resolveRowActivations({ ...state, pendingFoodGains: null }, actorUid, "understoryRow");
+    const activated = resolveRowActivations({ ...state, pendingDeckDraws: null, pendingFoodGains: null }, actorUid, "understoryRow");
 
     return {
       ok: true,
       state: endTurn({
         ...activated.state,
+        pendingDeckDraws: null,
         pendingFoodGains: null,
       }),
       actionCounter: currentActionCounter + 1,
@@ -448,6 +503,7 @@ export function applyMoveIntent(
       {
         ...state,
         pendingChoice: null,
+        pendingDeckDraws: null,
         pendingFoodGains: null,
       },
       actorUid,
@@ -455,7 +511,7 @@ export function applyMoveIntent(
       [...selectedOption.effects, ...pendingChoice.remainingEffects],
     );
 
-    const nextState = resolvedState.pendingChoice ? resolvedState : endTurn({ ...resolvedState, pendingFoodGains: null });
+    const nextState = resolvedState.pendingChoice ? resolvedState : endTurn({ ...resolvedState, pendingDeckDraws: null, pendingFoodGains: null });
 
     console.log("[choose-one] choice resolved", {
       stillPendingChoice: Boolean(nextState.pendingChoice),
@@ -489,6 +545,7 @@ export function applyMoveIntent(
           {
             ...played.game,
             pendingChoice: null,
+            pendingDeckDraws: null,
             pendingFoodGains: null,
           },
           actorUid,
@@ -498,9 +555,10 @@ export function applyMoveIntent(
       : {
           ...played.game,
           pendingChoice: null,
+          pendingDeckDraws: null,
           pendingFoodGains: null,
         };
-    const nextState = postOnPlayState.pendingChoice ? postOnPlayState : endTurn({ ...postOnPlayState, pendingFoodGains: null });
+    const nextState = postOnPlayState.pendingChoice ? postOnPlayState : endTurn({ ...postOnPlayState, pendingDeckDraws: null, pendingFoodGains: null });
 
     return {
       ok: true,
@@ -552,6 +610,7 @@ export function applyMoveIntent(
       ok: true,
       state: endTurn({
         ...activated.state,
+        pendingDeckDraws: null,
         pendingFoodGains: null,
       }),
       actionCounter: currentActionCounter + 1,
@@ -582,7 +641,7 @@ export function applyMoveIntent(
   }
 
   if (intent.type === "gainSunToken") {
-    const gained = gainSunlightToken({ ...state, pendingFoodGains: null }, actorUid, 1);
+    const gained = gainSunlightToken({ ...state, pendingDeckDraws: null, pendingFoodGains: null }, actorUid, 1);
     const activated = resolveRowActivations(gained.game, actorUid, "canopyRow");
 
     return {
@@ -596,7 +655,11 @@ export function applyMoveIntent(
     };
   }
 
-  const drawn = drawDeckCardToHand({ ...state, pendingFoodGains: null }, actorUid);
+  const totalDeckDraws = pendingDeckDraws?.remaining
+    ? pendingDeckDraws.remaining
+    : getPlayerOasisEdgeDrawAmount(state, actorUid);
+
+  const drawn = drawDeckCardToHand({ ...state, pendingDeckDraws: null, pendingFoodGains: null }, actorUid);
 
   if (!drawn.card) {
     return {
@@ -608,11 +671,36 @@ export function applyMoveIntent(
     };
   }
 
-  const activated = resolveRowActivations(drawn.game, actorUid, "oasisEdgeRow");
+  const remainingDeckDraws = Math.max(0, totalDeckDraws - 1);
+  const stateWithDrawProgress: TurnGameState = {
+    ...drawn.game,
+    pendingDeckDraws:
+      remainingDeckDraws > 0
+        ? {
+            playerId: actorUid,
+            remaining: remainingDeckDraws,
+          }
+        : null,
+    pendingFoodGains: null,
+  };
+
+  if (remainingDeckDraws > 0) {
+    return {
+      ok: true,
+      state: stateWithDrawProgress,
+      actionCounter: currentActionCounter + 1,
+    };
+  }
+
+  const activated = resolveRowActivations({ ...stateWithDrawProgress, pendingDeckDraws: null }, actorUid, "oasisEdgeRow");
 
   return {
     ok: true,
-    state: activated.state,
+    state: endTurn({
+      ...activated.state,
+      pendingDeckDraws: null,
+      pendingFoodGains: null,
+    }),
     actionCounter: currentActionCounter + 1,
     animation: {
       actorUid,
