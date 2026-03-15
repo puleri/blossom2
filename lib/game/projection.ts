@@ -24,6 +24,9 @@ export type ProjectedTurnGameState = {
     trigger: "onPlay";
     options: Array<{ label: string }>;
   } | null;
+  pendingFoodSelection: {
+    remaining: number;
+  } | null;
   gameId: string;
   createdAt: string;
   seed: number;
@@ -146,6 +149,10 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
             trigger: state.pendingChoice.trigger,
             options: state.pendingChoice.options.map((option) => ({ label: option.label })),
           }
+        : null,
+    pendingFoodSelection:
+      state.pendingFoodGains && state.pendingFoodGains.playerId === viewerUid
+        ? { remaining: state.pendingFoodGains.remaining }
         : null,
     gameId: state.gameId,
     createdAt: state.createdAt,

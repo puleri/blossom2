@@ -593,7 +593,7 @@ describe("applyMoveIntent", () => {
       },
     };
 
-    const result = applyMoveIntent(
+    const firstTake = applyMoveIntent(
       gameWithRow,
       {
         type: "takeFoodToken",
@@ -605,9 +605,32 @@ describe("applyMoveIntent", () => {
       0,
     );
 
+    expect(firstTake.ok).toBe(true);
+    if (!firstTake.ok) {
+      return;
+    }
+
+    expect(firstTake.actionCounter).toBe(1);
+    expect(firstTake.animation).toBeUndefined();
+    expect(firstTake.state.foodByPlayerId?.p1).toEqual([gameWithRow.foodCache[0]]);
+    expect(firstTake.state.currentPlayerId).toBe("p1");
+    expect(firstTake.state.turn).toBe(1);
+    expect(firstTake.state.pendingFoodGains).toEqual({ playerId: "p1", remaining: 1 });
+
+    const result = applyMoveIntent(
+      firstTake.state,
+      {
+        type: "activateUnderstory",
+        expectedTurn: 1,
+        expectedActionCounter: 1,
+      },
+      "p1",
+      1,
+    );
+
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.actionCounter).toBe(1);
+      expect(result.actionCounter).toBe(2);
       expect(result.animation?.activationSteps.map((step) => step.cardId)).toEqual([
         gainSunCard!.id,
         noAbilityCard!.id,
@@ -619,17 +642,126 @@ describe("applyMoveIntent", () => {
         "understoryRow",
       ]);
       expect(result.animation?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
-      expect(result.state.foodByPlayerId?.p1).toEqual([gameWithRow.foodCache[0]]);
       expect(result.state.sunlightByPlayerId?.p1).toBe(gainSunCard!.onActivate?.type === "gainSun" ? gainSunCard!.onActivate.effect.amount : 0);
       expect(result.state.handsByPlayerId.p1.slice(-drawAmount)).toEqual(gameWithRow.deck.slice(0, drawAmount));
       expect(result.state.deck[0]).toBe(gameWithRow.deck[drawAmount]);
-      expect(result.state.currentPlayerId).toBe("p1");
-      expect(result.state.turn).toBe(1);
-      expect(result.state.pendingFoodGains).toEqual({ playerId: "p1", remaining: 1 });
+      expect(result.state.currentPlayerId).toBe("p2");
+      expect(result.state.turn).toBe(2);
+      expect(result.state.pendingFoodGains).toBeNull();
     }
   });
 
 
+
+  it("allows rerolling food cache during food selection phase", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+    const gameWithTwoUnderstoryCards = {
+      ...game,
+      foodCache: ["P", "P", "P", "P", "P"] as const,
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          understoryRow: ["u1", "u2"],
+        },
+      },
+    };
+
+    const firstTake = applyMoveIntent(
+      gameWithTwoUnderstoryCards,
+      {
+        type: "takeFoodToken",
+        cacheIndex: 0,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(firstTake.ok).toBe(true);
+    if (!firstTake.ok) {
+      randomSpy.mockRestore();
+      return;
+    }
+
+    const rerolled = applyMoveIntent(
+      firstTake.state,
+      {
+        type: "rerollFoodCache",
+        expectedTurn: 1,
+        expectedActionCounter: 1,
+      },
+      "p1",
+      1,
+    );
+
+    expect(rerolled.ok).toBe(true);
+    if (rerolled.ok) {
+      expect(rerolled.state.foodCache).toEqual(["W", "W", "W", "W", "W"]);
+      expect(rerolled.state.pendingFoodGains).toEqual({ playerId: "p1", remaining: 1 });
+      expect(rerolled.state.turn).toBe(1);
+      expect(rerolled.state.currentPlayerId).toBe("p1");
+    }
+
+    randomSpy.mockRestore();
+  });
+
+  it("activates understory manually after selecting fewer food tokens than allowed", () => {
+    const drawAbilityCard = EXPANDED_DECK.find((card) => card.onActivate?.type === "drawCards" && card.biomes.includes("understory"));
+    expect(drawAbilityCard).toBeDefined();
+
+    const gameWithTwoUnderstoryCards = {
+      ...game,
+      deck: ["d1", ...game.deck],
+      tableauByPlayerId: {
+        ...game.tableauByPlayerId,
+        p1: {
+          ...game.tableauByPlayerId.p1,
+          understoryRow: [drawAbilityCard!.id, "u2"],
+        },
+      },
+    };
+
+    const firstTake = applyMoveIntent(
+      gameWithTwoUnderstoryCards,
+      {
+        type: "takeFoodToken",
+        cacheIndex: 0,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(firstTake.ok).toBe(true);
+    if (!firstTake.ok) {
+      return;
+    }
+
+    expect(firstTake.state.pendingFoodGains).toEqual({ playerId: "p1", remaining: 1 });
+    expect(firstTake.animation).toBeUndefined();
+
+    const activated = applyMoveIntent(
+      firstTake.state,
+      {
+        type: "activateUnderstory",
+        expectedTurn: 1,
+        expectedActionCounter: 1,
+      },
+      "p1",
+      1,
+    );
+
+    expect(activated.ok).toBe(true);
+    if (activated.ok) {
+      expect(activated.state.pendingFoodGains).toBeNull();
+      expect(activated.state.turn).toBe(2);
+      expect(activated.state.currentPlayerId).toBe("p2");
+      expect(activated.animation?.activationSteps.map((step) => step.rowId)).toEqual(["understoryRow", "understoryRow"]);
+    }
+  });
 
   it("rerolls food cache when it is empty", () => {
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
