@@ -283,6 +283,7 @@ export default function OasisGamePage() {
   const currentPlayerHand = currentPlayerState?.hand ?? [];
   const currentPlayerSunTokens = currentPlayerState?.sunlightTokens ?? 0;
   const pendingChoice = gameState?.pendingChoice ?? null;
+  const pendingFoodSelection = gameState?.pendingFoodSelection ?? null;
   const projectedPendingAnimations = useMemo(() => {
     const event = room?.game?.animationEvent;
     if (!event?.activationSteps?.length) {
@@ -512,7 +513,7 @@ export default function OasisGamePage() {
   };
 
   const handlePlayCard = async (cardId: string, rowId: TableauRowId) => {
-    if (!gameState || !room?.game || isSubmitting || pendingChoice || currentUid !== gameState.currentPlayerId) {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || pendingFoodSelection || currentUid !== gameState.currentPlayerId) {
       return;
     }
 
@@ -554,7 +555,7 @@ export default function OasisGamePage() {
   };
 
   const handleDrawCard = async () => {
-    if (!gameState || !room?.game || isSubmitting || pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || pendingFoodSelection || !currentUid || currentUid !== gameState.currentPlayerId) {
       return;
     }
 
@@ -600,7 +601,7 @@ export default function OasisGamePage() {
         return;
       }
 
-      setStatus("Food token taken.");
+      setStatus("Food token selected.");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to take food token.");
     } finally {
@@ -648,8 +649,35 @@ export default function OasisGamePage() {
     }
   };
 
+  const handleActivateUnderstory = async () => {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || !pendingFoodSelection || !currentUid || currentUid !== gameState.currentPlayerId) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const result = await submitMoveIntent(gameId, {
+        type: "activateUnderstory",
+        expectedTurn: gameState.turn,
+        expectedActionCounter: room.game.actionCounter,
+      });
+
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+
+      setStatus("Understory activated.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to activate understory.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleGainSunToken = async () => {
-    if (!gameState || !room?.game || isSubmitting || pendingChoice || !currentUid || currentUid !== gameState.currentPlayerId) {
+    if (!gameState || !room?.game || isSubmitting || pendingChoice || pendingFoodSelection || !currentUid || currentUid !== gameState.currentPlayerId) {
       return;
     }
 
@@ -703,21 +731,14 @@ export default function OasisGamePage() {
               onMouseEnter={() => setFoodCacheHoverPlayerId(currentUid)}
               onMouseLeave={() => setFoodCacheHoverPlayerId((value) => (value === currentUid ? null : value))}
               onClick={() => {
-                if (!currentUid) {
-                  return;
+                if (pendingFoodSelection) {
+                  void handleActivateUnderstory();
                 }
-
-                const firstCacheIndex = gameState.foodCache.findIndex((value) => value > 0);
-                if (firstCacheIndex < 0) {
-                  return;
-                }
-
-                void handleTakeFoodToken(firstCacheIndex);
               }}
-              disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
-              aria-label="Activate understory row"
+              disabled={!pendingFoodSelection || !currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
+              aria-label="Activate understory engine"
             >
-              Food cache
+              {pendingFoodSelection ? `Activate understory (${pendingFoodSelection.remaining} optional pick${pendingFoodSelection.remaining === 1 ? "" : "s"} left)` : "Food cache"}
             </button>
             <div className="food-cache-tokens">
               {gameState.foodCache.map((value, index) => (
@@ -728,7 +749,7 @@ export default function OasisGamePage() {
                   onClick={() => {
                     void handleTakeFoodToken(index);
                   }}
-                  disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting}
+                  disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting || Boolean(pendingChoice)}
                   aria-label={`Take ${value} food token`}
                 >
                   {value}
@@ -741,7 +762,7 @@ export default function OasisGamePage() {
               onClick={() => {
                 void handleRerollFoodCache();
               }}
-              disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting || !canRerollFoodCache}
+              disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting || Boolean(pendingChoice) || !canRerollFoodCache}
               aria-label="Reroll food cache"
             >
               Reroll cache

@@ -106,6 +106,11 @@ export type MoveIntent =
       type: "rerollFoodCache";
       expectedTurn: number;
       expectedActionCounter: number;
+    }
+  | {
+      type: "activateUnderstory";
+      expectedTurn: number;
+      expectedActionCounter: number;
     };
 
 export type MoveErrorCode = "NOT_YOUR_TURN" | "INVALID_ACTION" | "STALE_STATE";
@@ -368,12 +373,39 @@ export function applyMoveIntent(
     };
   }
 
-  if (pendingFoodGains && intent.type !== "takeFoodToken") {
+  if (pendingFoodGains && intent.type !== "takeFoodToken" && intent.type !== "rerollFoodCache" && intent.type !== "activateUnderstory") {
     return {
       ok: false,
       error: {
         code: "INVALID_ACTION",
-        message: "Continue taking food tokens to finish the root action.",
+        message: "Finish the food selection phase first.",
+      },
+    };
+  }
+
+  if (intent.type === "activateUnderstory") {
+    if (!pendingFoodGains || pendingFoodGains.playerId !== actorUid) {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_ACTION",
+          message: "No understory activation is ready.",
+        },
+      };
+    }
+
+    const activated = resolveRowActivations({ ...state, pendingFoodGains: null }, actorUid, "understoryRow");
+
+    return {
+      ok: true,
+      state: endTurn({
+        ...activated.state,
+        pendingFoodGains: null,
+      }),
+      actionCounter: currentActionCounter + 1,
+      animation: {
+        actorUid,
+        activationSteps: activated.activationSteps,
       },
     };
   }
@@ -505,17 +537,23 @@ export function applyMoveIntent(
             }
           : null,
     };
-    const activated = resolveRowActivations(stateWithFoodProgress, actorUid, "understoryRow");
+
+    if (remainingFoodGains > 0) {
+      return {
+        ok: true,
+        state: stateWithFoodProgress,
+        actionCounter: currentActionCounter + 1,
+      };
+    }
+
+    const activated = resolveRowActivations({ ...stateWithFoodProgress, pendingFoodGains: null }, actorUid, "understoryRow");
 
     return {
       ok: true,
-      state:
-        remainingFoodGains > 0
-          ? activated.state
-          : endTurn({
-              ...activated.state,
-              pendingFoodGains: null,
-            }),
+      state: endTurn({
+        ...activated.state,
+        pendingFoodGains: null,
+      }),
       actionCounter: currentActionCounter + 1,
       animation: {
         actorUid,
@@ -538,7 +576,7 @@ export function applyMoveIntent(
 
     return {
       ok: true,
-      state: { ...rerollFoodCache(state), pendingFoodGains: null },
+      state: rerollFoodCache(state),
       actionCounter: currentActionCounter + 1,
     };
   }
