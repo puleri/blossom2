@@ -811,6 +811,11 @@ export default function OasisGamePage() {
                 return;
               }
 
+              if (pendingDeckSelection && pendingDeckSelection.remaining > 0) {
+                void handleDrawCard();
+                return;
+              }
+
               if (pendingDeckSelection) {
                 void handleResolveOasisEdge();
                 return;
