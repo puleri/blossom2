@@ -131,6 +131,10 @@ export type TurnGameState = {
     options: Array<{ label: string; effects: Effect[] }>;
     remainingEffects: Effect[];
   } | null;
+  pendingFoodGains?: {
+    playerId: string;
+    remaining: number;
+  } | null;
   lastAction?: ActionType;
 };
 
