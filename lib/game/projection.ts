@@ -27,6 +27,9 @@ export type ProjectedTurnGameState = {
   pendingFoodSelection: {
     remaining: number;
   } | null;
+  pendingDeckSelection: {
+    remaining: number;
+  } | null;
   gameId: string;
   createdAt: string;
   seed: number;
@@ -153,6 +156,10 @@ export function projectTurnGameState(state: TurnGameState, viewerUid: string): P
     pendingFoodSelection:
       state.pendingFoodGains && state.pendingFoodGains.playerId === viewerUid
         ? { remaining: state.pendingFoodGains.remaining }
+        : null,
+    pendingDeckSelection:
+      state.pendingDeckDraws && state.pendingDeckDraws.playerId === viewerUid
+        ? { remaining: state.pendingDeckDraws.remaining }
         : null,
     gameId: state.gameId,
     createdAt: state.createdAt,

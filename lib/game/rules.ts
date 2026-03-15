@@ -255,6 +255,28 @@ export function getPlayerUnderstoryFoodGainAmount(game: TurnGameState, playerId:
 }
 
 
+
+export function getOasisEdgeDrawAmount(oasisEdgeCardCount: number): number {
+  if (oasisEdgeCardCount >= 6) {
+    return 4;
+  }
+
+  if (oasisEdgeCardCount >= 4) {
+    return 3;
+  }
+
+  if (oasisEdgeCardCount >= 2) {
+    return 2;
+  }
+
+  return 1;
+}
+
+export function getPlayerOasisEdgeDrawAmount(game: TurnGameState, playerId: string): number {
+  const oasisEdgeCardCount = game.tableauByPlayerId[playerId]?.oasisEdgeRow.length ?? 0;
+  return getOasisEdgeDrawAmount(oasisEdgeCardCount);
+}
+
 export function gainSunlightToken(
   game: TurnGameState,
   playerId: string,
