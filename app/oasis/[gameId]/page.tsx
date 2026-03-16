@@ -555,7 +555,7 @@ export default function OasisGamePage() {
     }
   };
 
-  const handleDrawCard = async () => {
+  const handleDrawCard = async (trayIndex?: number) => {
     if (!gameState || !room?.game || isSubmitting || pendingChoice || pendingFoodSelection || !currentUid || currentUid !== gameState.currentPlayerId) {
       return;
     }
@@ -569,6 +569,7 @@ export default function OasisGamePage() {
       setError(null);
       const result = await submitMoveIntent(gameId, {
         type: "drawCard",
+        ...(typeof trayIndex === "number" ? { trayIndex } : {}),
         expectedTurn: gameState.turn,
         expectedActionCounter: room.game.actionCounter,
       });
@@ -799,6 +800,27 @@ export default function OasisGamePage() {
             >
               Reroll cache
             </button>
+          </aside>
+
+          <aside className="food-cache-panel" aria-label="Plant cache">
+            <p style={{ margin: 0, fontWeight: 700 }}>Plant cache</p>
+            <div className="food-cache-tokens">
+              {gameState.tray.map((card, index) => (
+                <button
+                  key={`${card.id}-${index}`}
+                  type="button"
+                  className="food-cache-token"
+                  onClick={() => {
+                    void handleDrawCard(index);
+                  }}
+                  disabled={!currentUid || currentUid !== gameState.currentPlayerId || isSubmitting || Boolean(pendingChoice) || Boolean(pendingFoodSelection)}
+                  aria-label={`Draw ${card.name} from plant cache`}
+                  title={card.name}
+                >
+                  {card.name}
+                </button>
+              ))}
+            </div>
           </aside>
 
           <button

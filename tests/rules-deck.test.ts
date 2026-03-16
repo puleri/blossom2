@@ -61,6 +61,21 @@ describe("createGame deck setup", () => {
     randomSpy.mockRestore();
   });
 
+
+
+  it("refills the plant cache tray from deck at the start of next turn", () => {
+    const players = [
+      { id: "p1", name: "P1" },
+      { id: "p2", name: "P2" },
+    ];
+
+    const game = createGame("g1", players, 42);
+    const trayAfterPick = game.tray.slice(0, 1);
+    const next = endTurn({ ...game, tray: trayAfterPick });
+
+    expect(next.tray).toHaveLength(3);
+    expect(next.deck.length).toBe(game.deck.length - 3);
+  });
   it("automatically rerolls food when the cache is empty", () => {
     const players = [
       { id: "p1", name: "P1" },

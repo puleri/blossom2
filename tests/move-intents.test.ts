@@ -296,7 +296,7 @@ describe("applyMoveIntent", () => {
       expect(result.animation?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
       expect(result.state.sunlightByPlayerId?.p1).toBe(2);
       expect(result.state.handsByPlayerId.p1.slice(-2)).toEqual(["d2", "d3"]);
-      expect(result.state.deck[0]).toBe("d4");
+      expect(result.state.tray[0]).toBe("d4");
       expect(result.state.currentPlayerId).toBe("p2");
       expect(result.state.turn).toBe(2);
     }
@@ -359,7 +359,8 @@ describe("applyMoveIntent", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.state.handsByPlayerId.p1.length).toBe(game.handsByPlayerId.p1.length + 1);
-      expect(result.state.deck.length).toBe(game.deck.length - 1);
+      expect(result.state.deck.length).toBe(game.deck.length - 4);
+      expect(result.state.tray).toHaveLength(3);
       expect(result.state.currentPlayerId).toBe("p2");
       expect(result.state.turn).toBe(2);
       expect(result.actionCounter).toBe(1);
@@ -516,7 +517,7 @@ describe("applyMoveIntent", () => {
       expect(secondDraw.state.currentPlayerId).toBe("p2");
       expect(secondDraw.state.pendingDeckDraws).toBeNull();
       expect(secondDraw.state.handsByPlayerId.p1.slice(-2)).toEqual(["d1", "d2"]);
-      expect(secondDraw.state.deck[0]).toBe("d3");
+      expect(secondDraw.state.tray[0]).toBe("d3");
       expect(secondDraw.animation).toBeDefined();
     }
   });
@@ -768,7 +769,7 @@ describe("applyMoveIntent", () => {
       expect(result.animation?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
       expect(result.state.sunlightByPlayerId?.p1).toBe(gainSunCard!.onActivate?.type === "gainSun" ? gainSunCard!.onActivate.effect.amount : 0);
       expect(result.state.handsByPlayerId.p1.slice(-drawAmount)).toEqual(gameWithRow.deck.slice(0, drawAmount));
-      expect(result.state.deck[0]).toBe(gameWithRow.deck[drawAmount]);
+      expect(result.state.tray[0]).toBe(gameWithRow.deck[drawAmount]);
       expect(result.state.currentPlayerId).toBe("p2");
       expect(result.state.turn).toBe(2);
       expect(result.state.pendingFoodGains).toBeNull();
@@ -1128,13 +1129,14 @@ describe("applyMoveIntent", () => {
     }
   });
 
-  it("refills tray after taking a tray card while deck has cards", () => {
+  it("does not refill tray after taking a tray card until next upkeep", () => {
     const beforeTakeDeck = game.deck.length;
+    const beforeTakeTray = game.tray.length;
     const taken = takeTrayCard(game, 1);
 
     expect(taken.card).not.toBeNull();
-    expect(taken.game.tray).toHaveLength(3);
-    expect(taken.game.deck).toHaveLength(beforeTakeDeck - 1);
+    expect(taken.game.tray).toHaveLength(beforeTakeTray - 1);
+    expect(taken.game.deck).toHaveLength(beforeTakeDeck);
   });
 
   it("allows tray to shrink when draw pile is exhausted", () => {
@@ -1150,4 +1152,47 @@ describe("applyMoveIntent", () => {
     expect(taken.game.deck).toHaveLength(0);
     expect(taken.game.tray).toHaveLength(1);
   });
+  it("allows drawing from the plant cache tray without refilling until next turn", () => {
+    const startGame = createGame(
+      "tray-draw-game",
+      [
+        { id: "p1", name: "P1" },
+        { id: "p2", name: "P2" },
+      ],
+      11,
+    );
+    const gameWithPendingDraw = {
+      ...startGame,
+      tableauByPlayerId: {
+        ...startGame.tableauByPlayerId,
+        p1: {
+          ...startGame.tableauByPlayerId.p1,
+          oasisEdgeRow: ["o1", "o2"],
+        },
+      },
+    };
+
+    const trayCard = gameWithPendingDraw.tray[0];
+    const result = applyMoveIntent(
+      gameWithPendingDraw,
+      {
+        type: "drawCard",
+        trayIndex: 0,
+        expectedTurn: 1,
+        expectedActionCounter: 0,
+      },
+      "p1",
+      0,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.state.handsByPlayerId.p1).toContain(trayCard);
+    expect(result.state.tray).toHaveLength(gameWithPendingDraw.tray.length - 1);
+    expect(result.state.pendingDeckDraws).toEqual({ playerId: "p1", remaining: 1 });
+  });
+
 });
