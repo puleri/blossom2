@@ -1,5 +1,5 @@
 import { EXPANDED_DECK } from "./cards";
-import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, getPlayerOasisEdgeDrawAmount, getPlayerUnderstoryFoodGainAmount, playCardToRow, rerollFoodCache, takeFoodTokenToInventory, takeTrayCard } from "./rules";
+import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, getPlayerCanopySunGainAmount, getPlayerOasisEdgeDrawAmount, getPlayerUnderstoryFoodGainAmount, playCardToRow, rerollFoodCache, takeFoodTokenToInventory, takeTrayCard } from "./rules";
 import type { ActivationAbility, CardId, Effect, FoodToken, Resource, TableauRowId, TurnGameState } from "../types";
 
 export type ActivationAnimationStep = {
@@ -642,7 +642,8 @@ export function applyMoveIntent(
   }
 
   if (intent.type === "gainSunToken") {
-    const gained = gainSunlightToken({ ...state, pendingDeckDraws: null, pendingFoodGains: null }, actorUid, 1);
+    const totalSunGains = getPlayerCanopySunGainAmount(state, actorUid);
+    const gained = gainSunlightToken({ ...state, pendingDeckDraws: null, pendingFoodGains: null }, actorUid, totalSunGains);
     const activated = resolveRowActivations(gained.game, actorUid, "canopyRow");
 
     return {
