@@ -802,14 +802,14 @@ export default function OasisGamePage() {
             </button>
           </aside>
 
-          <aside className="food-cache-panel" aria-label="Plant cache">
+          <aside className="plant-cache-panel" aria-label="Plant cache">
             <p style={{ margin: 0, fontWeight: 700 }}>Plant cache</p>
-            <div className="food-cache-tokens">
+            <div className="plant-cache-tokens">
               {gameState.tray.map((card, index) => (
                 <button
                   key={`${card.id}-${index}`}
                   type="button"
-                  className="food-cache-token"
+                  className="plant-cache-token"
                   onClick={() => {
                     void handleDrawCard(index);
                   }}

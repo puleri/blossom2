@@ -177,6 +177,48 @@ pre { white-space: pre-wrap; }
   padding-bottom: 220px;
 }
 
+.plant-cache-panel {
+  position: fixed;
+  top: 56px;
+  left: 16px;
+  display: grid;
+  gap: 8px;
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 30;
+}
+
+.plant-cache-panel.is-glowing {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 0 14px rgba(245, 158, 11, 0.32);
+}
+
+.plant-cache-tokens {
+  display: flex;
+  gap: 10px;
+}
+
+.plant-cache-token {
+  width: 100px;
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #1f2937;
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.plant-cache-token:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .food-cache-panel {
   position: fixed;
   top: 16px;
