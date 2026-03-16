@@ -728,7 +728,7 @@ export default function OasisGamePage() {
         return;
       }
 
-      setStatus("Sun token gained.");
+      setStatus("Sun tokens gained.");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to gain sun token.");
     } finally {
@@ -854,7 +854,7 @@ export default function OasisGamePage() {
           <button
             type="button"
             className="sun-icon-button"
-            aria-label="Gain 1 sun token"
+            aria-label="Gain sun tokens"
             onMouseEnter={() => setSunHoverPlayerId(currentUid)}
             onMouseLeave={() => setSunHoverPlayerId((value) => (value === currentUid ? null : value))}
             onClick={() => {

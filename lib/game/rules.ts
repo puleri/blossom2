@@ -252,6 +252,27 @@ export function getPlayerUnderstoryFoodGainAmount(game: TurnGameState, playerId:
   return getUnderstoryFoodGainAmount(understoryCardCount);
 }
 
+export function getCanopySunGainAmount(canopyCardCount: number): number {
+  if (canopyCardCount >= 6) {
+    return 5;
+  }
+
+  if (canopyCardCount >= 4) {
+    return 4;
+  }
+
+  if (canopyCardCount >= 2) {
+    return 3;
+  }
+
+  return 2;
+}
+
+export function getPlayerCanopySunGainAmount(game: TurnGameState, playerId: string): number {
+  const canopyCardCount = game.tableauByPlayerId[playerId]?.canopyRow.length ?? 0;
+  return getCanopySunGainAmount(canopyCardCount);
+}
+
 
 
 export function getOasisEdgeDrawAmount(oasisEdgeCardCount: number): number {

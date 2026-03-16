@@ -369,7 +369,7 @@ describe("applyMoveIntent", () => {
   });
 
 
-  it("gains a sun token for the active player without ending turn", () => {
+  it("gains sun tokens for the active player based on canopy level without ending turn", () => {
     const result = applyMoveIntent(
       game,
       {
@@ -383,7 +383,7 @@ describe("applyMoveIntent", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.state.sunlightByPlayerId?.p1).toBe(1);
+      expect(result.state.sunlightByPlayerId?.p1).toBe(2);
       expect(result.state.currentPlayerId).toBe("p1");
       expect(result.state.turn).toBe(1);
       expect(result.actionCounter).toBe(1);
@@ -437,7 +437,7 @@ describe("applyMoveIntent", () => {
         "canopyRow",
       ]);
       expect(result.animation?.activationSteps.map((step) => step.hasAbility)).toEqual([true, false, true]);
-      expect(result.state.sunlightByPlayerId?.p1).toBe(1 + (gainSunCard!.onActivate?.type === "gainSun" ? gainSunCard!.onActivate.effect.amount : 0));
+      expect(result.state.sunlightByPlayerId?.p1).toBe(3 + (gainSunCard!.onActivate?.type === "gainSun" ? gainSunCard!.onActivate.effect.amount : 0));
       expect(result.state.handsByPlayerId.p1.slice(-drawAmount)).toEqual(gameWithRow.deck.slice(0, drawAmount));
       expect(result.state.deck[0]).toBe(gameWithRow.deck[drawAmount]);
     }
