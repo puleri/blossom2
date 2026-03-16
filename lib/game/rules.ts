@@ -118,13 +118,11 @@ export function takeTrayCard(game: TurnGameState, trayIndex: number): { game: Tu
   }
 
   const trayWithoutCard = game.tray.filter((_, index) => index !== trayIndex);
-  const nextCards = drawToTray(game.deck, trayWithoutCard);
   return {
     card,
     game: {
       ...game,
-      deck: nextCards.deck,
-      tray: nextCards.tray,
+      tray: trayWithoutCard,
     },
   };
 }
@@ -312,11 +310,14 @@ export function getNextPlayerId(game: TurnGameState): string {
 
 export function endTurn(game: TurnGameState): TurnGameState {
   const nextFoodCache = canRerollFoodCache(game) ? rollFoodCache() : game.foodCache;
+  const nextTray = drawToTray(game.deck, []);
 
   return {
     ...game,
     turn: game.turn + 1,
     currentPlayerId: getNextPlayerId(game),
+    deck: nextTray.deck,
+    tray: nextTray.tray,
     foodCache: nextFoodCache,
   };
 }

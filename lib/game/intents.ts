@@ -1,5 +1,5 @@
 import { EXPANDED_DECK } from "./cards";
-import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, getPlayerOasisEdgeDrawAmount, getPlayerUnderstoryFoodGainAmount, playCardToRow, rerollFoodCache, takeFoodTokenToInventory } from "./rules";
+import { canRerollFoodCache, drawDeckCardToHand, endTurn, gainSunlightToken, getPlayerOasisEdgeDrawAmount, getPlayerUnderstoryFoodGainAmount, playCardToRow, rerollFoodCache, takeFoodTokenToInventory, takeTrayCard } from "./rules";
 import type { ActivationAbility, CardId, Effect, FoodToken, Resource, TableauRowId, TurnGameState } from "../types";
 
 export type ActivationAnimationStep = {
@@ -88,6 +88,7 @@ export type MoveIntent =
     }
   | {
       type: "drawCard";
+      trayIndex?: number;
       expectedTurn: number;
       expectedActionCounter: number;
     }
@@ -659,7 +660,27 @@ export function applyMoveIntent(
     ? pendingDeckDraws.remaining
     : getPlayerOasisEdgeDrawAmount(state, actorUid);
 
-  const drawn = drawDeckCardToHand({ ...state, pendingDeckDraws: null, pendingFoodGains: null }, actorUid);
+  const drawFromState = { ...state, pendingDeckDraws: null, pendingFoodGains: null };
+  const drawn = typeof intent.trayIndex === "number"
+    ? (() => {
+        const taken = takeTrayCard(drawFromState, intent.trayIndex);
+        if (!taken.card) {
+          return { game: drawFromState, card: null as CardId | null };
+        }
+
+        const hand = taken.game.handsByPlayerId[actorUid] ?? [];
+        return {
+          card: taken.card,
+          game: {
+            ...taken.game,
+            handsByPlayerId: {
+              ...taken.game.handsByPlayerId,
+              [actorUid]: [...hand, taken.card],
+            },
+          },
+        };
+      })()
+    : drawDeckCardToHand(drawFromState, actorUid);
 
   if (!drawn.card) {
     return {
